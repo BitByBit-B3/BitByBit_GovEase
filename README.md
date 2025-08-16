@@ -15,28 +15,55 @@ GovEase revolutionizes how Sri Lankan citizens interact with government services
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js 18+
+- Node.js 18+ or Docker
 - Firebase account (already configured)
 - Git
 
-### 1. Clone and Setup
+### Option 1: Docker Deployment (Recommended)
 ```bash
-git clone https://github.com/your-username/BitByBit_GovEase.git
+# Clone the repository
+git clone https://github.com/BitByBit-B3/BitByBit_GovEase.git
 cd BitByBit_GovEase
-npm install --legacy-peer-deps
+
+# Start with Docker Compose
+docker-compose up -d
+
+# Access the application
+open http://localhost:3000
 ```
 
-### 2. Run Development Server
+### Option 2: Local Development
 ```bash
+# Clone and setup
+git clone https://github.com/BitByBit-B3/BitByBit_GovEase.git
+cd BitByBit_GovEase
+
+# Install dependencies
+npm install --legacy-peer-deps
+
+# Copy environment file
+cp .env.local.example .env.local
+
+# Start development server
 npm run dev
 ```
 
 Visit [http://localhost:3000](http://localhost:3000) to see the application.
 
-### 3. Seed Sample Data
-1. Navigate to [http://localhost:3000/admin/seed](http://localhost:3000/admin/seed)
-2. Click "Seed Database" to populate with sample departments and services
-3. This creates 4 government departments with 12 services
+### 3. Initial Setup & Demo Data
+
+#### Automatic Data Seeding
+1. Navigate to any service booking page
+2. Click the "🌱 CREATE ALL DATA" button to instantly populate:
+   - 3 Government departments
+   - 9 Services with realistic details
+   - Sample appointments for testing
+
+#### Manual Admin Setup
+1. Register as a new user at `/auth`
+2. Go to admin panel `/admin` 
+3. Use the seed utilities to create sample data
+4. Explore the dashboard and analytics
 
 ## 🏗️ Architecture
 
@@ -161,21 +188,67 @@ Visit [http://localhost:3000](http://localhost:3000) to see the application.
 
 ## 🚢 Deployment
 
-### Docker Deployment
+### 🐳 Docker Deployment (Production Ready)
 ```bash
+# Build and start all services
 docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop services
+docker-compose down
+
+# Rebuild after changes
+docker-compose up -d --build
 ```
 
-### Firebase Hosting
+The Docker setup includes:
+- Next.js application container
+- Nginx reverse proxy with SSL support
+- Automatic container restart
+- Production optimizations
+
+### ☁️ Firebase Hosting
 ```bash
+# Build for production
 npm run build
+
+# Deploy to Firebase Hosting
 firebase deploy
+
+# Deploy specific services
+firebase deploy --only hosting
+firebase deploy --only firestore
 ```
 
-### Manual Deployment
+### 🔧 Manual Production Deployment
 ```bash
+# Install production dependencies
+npm ci --only=production
+
+# Build application
 npm run build
+
+# Start production server
 npm start
+
+# With PM2 for process management
+npm install -g pm2
+pm2 start npm --name "govease" -- start
+```
+
+### Environment Configuration
+Create `.env.local` with your Firebase configuration:
+```env
+# Firebase Configuration
+NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key_here
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
+NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=your_measurement_id
 ```
 
 ## 🗄️ Database Schema

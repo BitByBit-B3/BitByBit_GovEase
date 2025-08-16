@@ -1,0 +1,41 @@
+# Development Docker Compose configuration
+# Use this for local development with hot reload
+
+version: '3.8'
+
+services:
+  # Development GovEase Application with hot reload
+  govease-dev:
+    build: 
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: govease-dev
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+    env_file:
+      - .env.local
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    restart: unless-stopped
+    networks:
+      - govease-dev-network
+    command: npm run dev
+
+  # Redis for development caching
+  redis-dev:
+    image: redis:7-alpine
+    container_name: govease-redis-dev
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    networks:
+      - govease-dev-network
+    command: redis-server --requirepass ${REDIS_PASSWORD:-govease123}
+
+networks:
+  govease-dev-network:
+    driver: bridge
