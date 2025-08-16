@@ -12,7 +12,6 @@ services:
     networks:
       - govease-network
 
-  # Nginx reverse proxy (optional)
   nginx:
     image: nginx:alpine
     container_name: govease-nginx

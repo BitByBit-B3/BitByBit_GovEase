@@ -1,7 +1,6 @@
 @import "tailwindcss";
 
 /* Modern Government Design System */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@300;400;500;600;700;800&display=swap');
 
 :root {
   /* Primary Government Colors */
@@ -50,12 +49,12 @@
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: var(--gov-slate-50);
-  color: var(--gov-slate-900);
+  background: #ffffff;
+  color: #0f172a;
+  min-height: 100vh;
 }
 
 /* Custom Button Components */
@@ -63,31 +62,58 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.75rem 1.5rem;
+  padding: 1rem 2rem;
   border: none;
   font-size: 1rem;
   font-weight: 600;
-  border-radius: 0.75rem;
+  border-radius: 12px;
   color: white;
-  transition: all 0.2s ease-in-out;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   transform: scale(1);
   outline: none;
-  box-shadow: var(--gov-shadow-lg), var(--gov-shadow-blue);
-  background: var(--gov-gradient-primary);
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  box-shadow: 
+    0 12px 24px -4px rgba(99, 102, 241, 0.4),
+    0 8px 16px -4px rgba(139, 92, 246, 0.3),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.2);
   cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  letter-spacing: -0.025em;
+}
+
+.btn-primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
+  transition: left 0.6s ease;
 }
 
 .btn-primary:hover {
-  transform: scale(1.05);
-  box-shadow: var(--gov-shadow-xl), var(--gov-shadow-blue);
+  transform: scale(1.02) translateY(-2px);
+  box-shadow: 
+    0 20px 40px -4px rgba(99, 102, 241, 0.5),
+    0 12px 24px -4px rgba(139, 92, 246, 0.4),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.3);
+}
+
+.btn-primary:hover::before {
+  left: 100%;
 }
 
 .btn-primary:focus {
-  box-shadow: var(--gov-shadow-xl), var(--gov-shadow-blue), 0 0 0 4px rgb(59 130 246 / 0.3);
+  box-shadow: 
+    0 20px 40px -4px rgba(99, 102, 241, 0.5),
+    0 12px 24px -4px rgba(139, 92, 246, 0.4),
+    0 0 0 4px rgba(99, 102, 241, 0.3);
 }
 
 .btn-primary:active {
-  transform: scale(0.95);
+  transform: scale(0.98) translateY(0);
 }
 
 .btn-secondary {
@@ -254,52 +280,178 @@ body {
 
 /* Navigation */
 .nav-glass {
-  background-color: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(226, 232, 240, 0.6);
-  box-shadow: var(--gov-shadow-sm);
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.5), 0 1px 40px rgba(0, 0, 0, 0.1);
+  position: relative;
+}
+
+/* Clean Logo Styling */
+.nav-glass .feature-icon {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  box-shadow: 0 8px 25px -5px rgba(99, 102, 241, 0.3);
+  padding: 0.5rem;
+  border-radius: 12px;
+}
+
+.nav-glass .text-heading {
+  color: #0f172a;
+  font-weight: 800;
+  font-size: 1.5rem;
+  letter-spacing: -0.025em;
+}
+
+.nav-glass .gov-badge {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-weight: 600;
+  font-size: 10px;
+}
+
+/* Clean Navigation Buttons */
+.nav-glass .btn-primary {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  color: white;
+  border: none;
+  box-shadow: 0 8px 25px -5px rgba(99, 102, 241, 0.4);
+}
+
+.nav-glass .btn-secondary {
+  background: rgba(255, 255, 255, 0.9);
+  color: #4b5563;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+  backdrop-filter: blur(10px);
+}
+
+.nav-glass .btn-secondary:hover {
+  background: rgba(255, 255, 255, 1);
+  border-color: #6366f1;
+  color: #6366f1;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
 }
 
 /* Hero Section */
 .hero-gradient {
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 25%, #334155 50%, #1e3a8a 75%, #3b82f6 100%);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  position: relative;
+  overflow: hidden;
+  min-height: 80vh;
 }
 
 .hero-pattern {
   background-image: 
-    radial-gradient(circle at 25% 25%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 75% 75%, rgba(79, 70, 229, 0.1) 0%, transparent 50%);
+    radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 40% 80%, rgba(99, 102, 241, 0.2) 0%, transparent 50%);
+}
+
+.hero-gradient::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='grid' width='10' height='10' patternUnits='userSpaceOnUse'%3E%3Cpath d='M 10 0 L 0 0 0 10' fill='none' stroke='%23ffffff' stroke-width='0.5' opacity='0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100' height='100' fill='url(%23grid)'/%3E%3C/svg%3E");
+  animation: movePattern 30s linear infinite;
+}
+
+@keyframes movePattern {
+  0% { transform: translateX(0) translateY(0); }
+  100% { transform: translateX(100px) translateY(100px); }
 }
 
 /* Feature Cards */
 .feature-card {
-  background-color: white;
-  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 20px;
   padding: 2rem;
-  border: 1px solid rgba(226, 232, 240, 0.6);
-  transition: all 0.3s ease-in-out;
-  box-shadow: var(--gov-shadow);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.12),
+    0 2px 16px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.9);
   cursor: pointer;
-  group: true;
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(20px);
+}
+
+.feature-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.15), transparent);
+  transition: left 0.6s ease;
+}
+
+.feature-card:hover::before {
+  left: 100%;
 }
 
 .feature-card:hover {
-  border-color: rgba(147, 197, 253, 0.8);
-  transform: translateY(-8px);
-  box-shadow: var(--gov-shadow-xl);
+  border-color: rgba(99, 102, 241, 0.2);
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 
+    0 20px 60px rgba(0, 0, 0, 0.15),
+    0 8px 32px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(99, 102, 241, 0.1),
+    inset 0 1px 0 0 rgba(255, 255, 255, 1);
 }
 
 .feature-icon {
   padding: 1rem;
-  border-radius: 1rem;
-  transition: all 0.3s ease-in-out;
-  background: var(--gov-gradient-primary);
-  box-shadow: var(--gov-shadow-blue);
+  border-radius: 1.2rem;
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 50%, #1e40af 100%);
+  box-shadow: 
+    0 8px 25px -5px rgba(59, 130, 246, 0.3),
+    0 4px 6px -2px rgba(59, 130, 246, 0.1),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.2);
   display: inline-block;
+  position: relative;
+  overflow: hidden;
+}
+
+.feature-icon::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transform: rotate(45deg);
+  transition: all 0.6s ease;
+  opacity: 0;
 }
 
 .feature-card:hover .feature-icon {
-  transform: scale(1.1);
+  transform: scale(1.15) rotate(-5deg);
+  box-shadow: 
+    0 15px 35px -5px rgba(59, 130, 246, 0.4),
+    0 8px 15px -3px rgba(59, 130, 246, 0.2),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.3);
+}
+
+.feature-card:hover .feature-icon::before {
+  animation: shimmer 0.8s ease-in-out;
+  opacity: 1;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+  100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
 }
 
 /* Typography */
@@ -307,13 +459,11 @@ body {
   color: var(--gov-slate-900);
   font-weight: 700;
   letter-spacing: -0.025em;
-  font-family: 'Poppins', sans-serif;
 }
 
 .text-subheading {
   color: var(--gov-slate-700);
   font-weight: 600;
-  font-family: 'Poppins', sans-serif;
 }
 
 .text-body {
@@ -432,7 +582,6 @@ body {
   width: 100%;
   border: none;
   background-color: transparent;
-  font-family: 'Inter', sans-serif;
 }
 
 .react-calendar__tile {
@@ -490,4 +639,75 @@ body {
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background-color: var(--gov-slate-400);
+}
+
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+  .hero-gradient {
+    background-attachment: scroll;
+  }
+  
+  .feature-card {
+    padding: 1.5rem;
+  }
+  
+  .btn-primary, .btn-secondary {
+    padding: 0.75rem 1.5rem;
+    font-size: 0.9rem;
+  }
+  
+  .nav-glass .btn-primary, .nav-glass .btn-secondary {
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+  }
+  
+  .text-5xl, .text-6xl, .text-7xl {
+    font-size: 2.5rem !important;
+    line-height: 1.2;
+  }
+  
+  .feature-icon {
+    padding: 0.75rem;
+  }
+}
+
+/* Touch-friendly interactions */
+@media (hover: none) {
+  .feature-card:hover {
+    transform: none;
+  }
+  
+  .btn-primary:hover, .btn-secondary:hover {
+    transform: scale(1.02);
+  }
+}
+
+/* High DPI displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .feature-icon {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+}
+
+/* Focus states for accessibility */
+.btn-primary:focus-visible,
+.btn-secondary:focus-visible,
+.input-field:focus-visible {
+  outline: 3px solid rgba(59, 130, 246, 0.5);
+  outline-offset: 2px;
+}
+
+/* Print styles for QR codes */
+@media print {
+  .nav-glass,
+  .btn-primary,
+  .btn-secondary {
+    display: none !important;
+  }
+  
+  .feature-card {
+    box-shadow: none;
+    border: 1px solid #000;
+  }
 }

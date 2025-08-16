@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, useParams } from 'next/navigation';
-import { doc, getDoc, collection, addDoc, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc, collection, addDoc, query, where, getDocs, updateDoc } from 'firebase/firestore';
 import { db, storage } from '@/lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Service, Department, Appointment, UploadedDocument } from '@/types';
@@ -13,6 +13,7 @@ import { z } from 'zod';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 import Calendar from 'react-calendar';
+import 'react-calendar/dist/Calendar.css';
 import QRCode from 'qrcode';
 import { v4 as uuidv4 } from 'uuid';
 import { format, addDays, isSameDay, isWeekend } from 'date-fns';
@@ -115,10 +116,13 @@ export default function BookAppointmentPage() {
     return slots;
   };
 
-  const onDateChange = (date: Date) => {
-    setSelectedDate(date);
+  const onDateChange = (value: any) => {
+    if (!value || Array.isArray(value)) return;
+    
+    const selectedDate = value as Date;
+    setSelectedDate(selectedDate);
     setSelectedSlot('');
-    form.setValue('date', date);
+    form.setValue('date', selectedDate);
     form.setValue('timeSlot', '');
     
     // Generate available slots for the selected date
@@ -215,7 +219,7 @@ export default function BookAppointmentPage() {
       const qrCode = await generateQRCode({ ...appointmentData, id: appointmentId });
 
       // Update appointment with documents and QR code
-      await appointmentRef.update({
+      await updateDoc(appointmentRef, {
         documents: uploadedDocs,
         qrCode,
       });
@@ -254,8 +258,12 @@ export default function BookAppointmentPage() {
 
   if (loading || loadingData) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">Loading...</div>
+      <div className="min-h-screen hero-gradient hero-pattern flex items-center justify-center">
+        <div className="text-center animate-fade-in-up">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-white mx-auto mb-4"></div>
+          <div className="text-2xl font-semibold text-white">Loading Booking Interface...</div>
+          <p className="text-blue-100 mt-2">Preparing your appointment booking experience</p>
+        </div>
       </div>
     );
   }
@@ -265,89 +273,147 @@ export default function BookAppointmentPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm">
+    <div className="min-h-screen">
+      {/* Modern Glass Navigation */}
+      <nav className="nav-glass fixed w-full top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16 items-center">
-            <Link href="/" className="flex items-center">
-              <BuildingOfficeIcon className="h-8 w-8 text-blue-600" />
-              <span className="ml-2 text-xl font-bold text-gray-900">GovEase</span>
+          <div className="flex justify-between h-20 items-center">
+            <Link href="/" className="flex items-center animate-fade-in-down">
+              <div className="feature-icon mr-3">
+                <BuildingOfficeIcon className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <span className="text-2xl font-bold text-heading">GovEase</span>
+                <div className="gov-badge text-xs mt-1">Book Appointment</div>
+              </div>
             </Link>
-            <div className="flex items-center space-x-4">
-              <Link href="/dashboard" className="text-sm text-gray-700 hover:text-gray-900">
+            <div className="flex items-center space-x-4 animate-fade-in-down stagger-1">
+              <Link href="/dashboard" className="btn-secondary text-sm px-4 py-2">
+                <CalendarDaysIcon className="h-4 w-4 mr-2" />
                 Dashboard
               </Link>
-              <span className="text-sm text-gray-700">Welcome, {user.name}</span>
+              <div className="text-sm text-heading">
+                Welcome, <span className="font-semibold">{user.name}</span>
+              </div>
             </div>
           </div>
         </div>
       </nav>
 
-      <main className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">Book Appointment</h1>
-          <p className="mt-1 text-sm text-gray-600">
-            Schedule your appointment for government services
-          </p>
+      {/* Hero Section */}
+      <section className="hero-gradient hero-pattern relative pt-20 pb-16 overflow-hidden">
+        <div className="absolute inset-0 bg-black/20"></div>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20">
+          <div className="text-center">
+            <div className="animate-fade-in-up">
+              <h1 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">
+                <span className="block">Book Your</span>
+                <span className="block bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                  Government Appointment
+                </span>
+              </h1>
+            </div>
+            <div className="animate-fade-in-up stagger-1">
+              <p className="mt-4 max-w-2xl mx-auto text-xl text-blue-100 leading-relaxed">
+                Schedule your {service?.name} appointment and upload required documents 
+                for a seamless government service experience.
+              </p>
+            </div>
+          </div>
         </div>
+      </section>
+
+      <main className="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Service Details */}
           <div className="space-y-6">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Service Details</h2>
+            <div className="feature-card p-6 animate-fade-in-up">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-heading">Service Overview</h2>
+                <div className="feature-icon">
+                  <BuildingOfficeIcon className="h-6 w-6 text-white" />
+                </div>
+              </div>
               
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div>
-                  <h3 className="font-medium text-gray-900">{service.name}</h3>
-                  <p className="text-sm text-gray-600 mt-1">{service.description}</p>
+                  <h3 className="text-xl font-bold text-heading mb-2">{service.name}</h3>
+                  <p className="text-body leading-relaxed">{service.description}</p>
                 </div>
 
-                <div className="flex items-center text-sm text-gray-500">
-                  <BuildingOfficeIcon className="h-4 w-4 mr-2" />
-                  {department.name}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-center text-body">
+                    <div className="feature-icon mr-3 !p-2">
+                      <BuildingOfficeIcon className="h-4 w-4 text-white" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-heading">{department.name}</p>
+                      <p className="text-caption text-sm">Department</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center text-body">
+                    <div className="feature-icon mr-3 !p-2">
+                      <ClockIcon className="h-4 w-4 text-white" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-heading">{service.duration} minutes</p>
+                      <p className="text-caption text-sm">Duration</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center text-body md:col-span-2">
+                    <div className="feature-icon mr-3 !p-2">
+                      <CurrencyDollarIcon className="h-4 w-4 text-white" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-heading">LKR {service.fee.toLocaleString()}</p>
+                      <p className="text-caption text-sm">Service Fee</p>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="flex items-center text-sm text-gray-500">
-                  <ClockIcon className="h-4 w-4 mr-2" />
-                  {service.duration} minutes
-                </div>
-
-                <div className="flex items-center text-sm text-gray-500">
-                  <CurrencyDollarIcon className="h-4 w-4 mr-2" />
-                  LKR {service.fee.toLocaleString()}
-                </div>
-
-                <div className="border-t border-gray-200 pt-4">
-                  <h4 className="font-medium text-gray-900 mb-2">Required Documents</h4>
-                  <ul className="text-sm text-gray-600 space-y-1">
+                <div className="border-t border-gray-100 pt-6">
+                  <h4 className="text-lg font-bold text-heading mb-4">Required Documents</h4>
+                  <div className="space-y-3">
                     {service.requiredDocuments.map((doc, index) => (
-                      <li key={index} className="flex items-center">
-                        <DocumentTextIcon className="h-4 w-4 mr-2 text-blue-600" />
-                        {doc}
-                      </li>
+                      <div key={index} className="flex items-center p-3 bg-blue-50 rounded-lg">
+                        <DocumentTextIcon className="h-5 w-5 mr-3 text-blue-600" />
+                        <span className="text-body font-medium">{doc}</span>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* Document Upload */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Upload Documents</h3>
-              <p className="text-sm text-gray-600 mb-4">
-                Upload the required documents to speed up your appointment process.
-              </p>
+            <div className="feature-card p-6 animate-fade-in-up stagger-1">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-2xl font-bold text-heading">Upload Documents</h3>
+                  <p className="text-body mt-1">
+                    Upload required documents to expedite your appointment process
+                  </p>
+                </div>
+                <div className="feature-icon">
+                  <DocumentTextIcon className="h-6 w-6 text-white" />
+                </div>
+              </div>
 
-              <div className="space-y-4">
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                  <CloudArrowUpIcon className="mx-auto h-12 w-12 text-gray-400" />
-                  <div className="mt-4">
+              <div className="space-y-6">
+                <div className="border-2 border-dashed border-blue-300 rounded-xl p-8 text-center bg-blue-50/50 hover:bg-blue-50 transition-colors">
+                  <div className="feature-icon mx-auto mb-4">
+                    <CloudArrowUpIcon className="h-8 w-8 text-white" />
+                  </div>
+                  <div className="mb-4">
                     <label
                       htmlFor="file-upload"
-                      className="cursor-pointer bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+                      className="btn-primary cursor-pointer"
                     >
-                      Select Files
+                      <CloudArrowUpIcon className="h-5 w-5 mr-2" />
+                      Choose Files to Upload
                     </label>
                     <input
                       id="file-upload"
@@ -358,31 +424,35 @@ export default function BookAppointmentPage() {
                       className="hidden"
                     />
                   </div>
-                  <p className="mt-2 text-sm text-gray-500">
-                    PDF, JPG, PNG, DOC, DOCX up to 10MB each
+                  <p className="text-caption">
+                    Supports: PDF, JPG, PNG, DOC, DOCX • Maximum 10MB per file
                   </p>
                 </div>
 
                 {uploadedFiles.length > 0 && (
-                  <div className="space-y-2">
-                    <h4 className="font-medium text-gray-900">Uploaded Files</h4>
-                    {uploadedFiles.map((file, index) => (
-                      <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                        <div className="flex items-center">
-                          <CheckCircleIcon className="h-4 w-4 text-green-500 mr-2" />
-                          <span className="text-sm text-gray-900">{file.name}</span>
-                          <span className="text-xs text-gray-500 ml-2">
-                            ({(file.size / 1024 / 1024).toFixed(2)} MB)
-                          </span>
+                  <div className="space-y-4">
+                    <h4 className="text-lg font-bold text-heading">Uploaded Files ({uploadedFiles.length})</h4>
+                    <div className="space-y-3">
+                      {uploadedFiles.map((file, index) => (
+                        <div key={index} className="flex items-center justify-between p-4 bg-emerald-50 rounded-lg border border-emerald-200">
+                          <div className="flex items-center">
+                            <CheckCircleIcon className="h-5 w-5 text-emerald-600 mr-3" />
+                            <div>
+                              <span className="text-body font-semibold">{file.name}</span>
+                              <p className="text-caption text-sm">
+                                {(file.size / 1024 / 1024).toFixed(2)} MB
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => removeFile(index)}
+                            className="bg-red-100 text-red-700 hover:bg-red-200 px-3 py-1 rounded-lg text-sm font-semibold transition-colors"
+                          >
+                            Remove
+                          </button>
                         </div>
-                        <button
-                          onClick={() => removeFile(index)}
-                          className="text-red-500 hover:text-red-700 text-sm"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -390,16 +460,24 @@ export default function BookAppointmentPage() {
           </div>
 
           {/* Booking Form */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">Select Date & Time</h2>
+          <div className="feature-card p-6 animate-fade-in-up stagger-2">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-heading">Schedule Appointment</h2>
+                <p className="text-body mt-1">Choose your preferred date and time slot</p>
+              </div>
+              <div className="feature-icon">
+                <CalendarDaysIcon className="h-6 w-6 text-white" />
+              </div>
+            </div>
 
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               {/* Calendar */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Select Date
+                <label className="block text-lg font-bold text-heading mb-4">
+                  Choose Your Date
                 </label>
-                <div className="border border-gray-300 rounded-lg p-4">
+                <div className="border border-gray-200 rounded-xl p-6 bg-gray-50">
                   <Calendar
                     onChange={onDateChange}
                     value={selectedDate}
@@ -410,7 +488,7 @@ export default function BookAppointmentPage() {
                   />
                 </div>
                 {form.formState.errors.date && (
-                  <p className="mt-1 text-sm text-red-600">
+                  <p className="mt-2 text-sm text-red-600 font-medium">
                     {form.formState.errors.date.message}
                   </p>
                 )}
@@ -419,10 +497,10 @@ export default function BookAppointmentPage() {
               {/* Time Slots */}
               {selectedDate && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Select Time Slot
+                  <label className="block text-lg font-bold text-heading mb-4">
+                    Select Your Time Slot
                   </label>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 gap-3">
                     {availableSlots.map((slot) => (
                       <button
                         key={slot}
@@ -431,18 +509,19 @@ export default function BookAppointmentPage() {
                           setSelectedSlot(slot);
                           form.setValue('timeSlot', slot);
                         }}
-                        className={`p-2 text-sm border rounded-md ${
+                        className={`p-4 text-sm font-semibold border-2 rounded-lg transition-all ${
                           selectedSlot === slot
-                            ? 'border-blue-500 bg-blue-50 text-blue-700'
-                            : 'border-gray-300 hover:border-gray-400'
+                            ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-md scale-105'
+                            : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50 text-body'
                         }`}
                       >
+                        <ClockIcon className="h-4 w-4 mx-auto mb-1" />
                         {slot}
                       </button>
                     ))}
                   </div>
                   {form.formState.errors.timeSlot && (
-                    <p className="mt-1 text-sm text-red-600">
+                    <p className="mt-2 text-sm text-red-600 font-medium">
                       {form.formState.errors.timeSlot.message}
                     </p>
                   )}
@@ -451,30 +530,40 @@ export default function BookAppointmentPage() {
 
               {/* Notes */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-lg font-bold text-heading mb-4">
                   Additional Notes (Optional)
                 </label>
                 <textarea
                   {...form.register('notes')}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Any additional information or special requests..."
+                  rows={4}
+                  className="input-field w-full"
+                  placeholder="Share any special requirements, accessibility needs, or additional information that might help us serve you better..."
                 />
               </div>
 
-              <div className="flex space-x-4">
+              <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4 pt-6 border-t border-gray-100">
                 <Link
                   href="/services"
-                  className="flex-1 py-2 px-4 border border-gray-300 rounded-md text-gray-700 text-center hover:bg-gray-50"
+                  className="btn-secondary flex-1 text-center"
                 >
-                  Cancel
+                  Cancel Booking
                 </Link>
                 <button
                   type="submit"
                   disabled={submitting || !selectedDate || !selectedSlot}
-                  className="flex-1 py-2 px-4 border border-transparent rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                  className="btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {submitting ? 'Booking...' : 'Book Appointment'}
+                  {submitting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      {uploading ? 'Uploading Documents...' : 'Booking Appointment...'}
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircleIcon className="h-5 w-5 mr-2" />
+                      Confirm Appointment
+                    </>
+                  )}
                 </button>
               </div>
             </form>

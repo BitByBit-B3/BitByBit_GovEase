@@ -215,10 +215,29 @@ export default function AdminDashboard() {
     }
   };
 
+  const getStatusComponent = (status: string) => {
+    switch (status) {
+      case 'confirmed':
+        return 'status-confirmed';
+      case 'completed':
+        return 'status-completed';
+      case 'cancelled':
+        return 'status-cancelled';
+      case 'no-show':
+        return 'status-cancelled';
+      default:
+        return 'status-pending';
+    }
+  };
+
   if (loading || loadingData) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">Loading admin dashboard...</div>
+      <div className="min-h-screen hero-gradient hero-pattern flex items-center justify-center">
+        <div className="text-center animate-fade-in-up">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-white mx-auto mb-4"></div>
+          <div className="text-2xl font-semibold text-white">Loading Admin Dashboard...</div>
+          <p className="text-blue-100 mt-2">Preparing appointment management interface</p>
+        </div>
       </div>
     );
   }
@@ -245,24 +264,43 @@ export default function AdminDashboard() {
   const confirmedAppointments = appointments.filter(apt => apt.status === 'confirmed');
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm">
+    <div className="min-h-screen">
+      {/* Modern Glass Navigation */}
+      <nav className="nav-glass fixed w-full top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16 items-center">
-            <Link href="/" className="flex items-center">
-              <BuildingOfficeIcon className="h-8 w-8 text-blue-600" />
-              <span className="ml-2 text-xl font-bold text-gray-900">GovEase</span>
+          <div className="flex justify-between h-20 items-center">
+            <Link href="/" className="flex items-center animate-fade-in-down">
+              <div className="feature-icon mr-3">
+                <BuildingOfficeIcon className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <span className="text-2xl font-bold text-heading">GovEase</span>
+                <div className="gov-badge text-xs mt-1">
+                  {user.role === 'admin' ? 'Admin Panel' : 'Officer Panel'}
+                </div>
+              </div>
             </Link>
-            <div className="flex items-center space-x-4">
-              <Link href="/admin/seed" className="text-sm text-gray-700 hover:text-gray-900">
+            <div className="flex items-center space-x-4 animate-fade-in-down stagger-1">
+              <Link href="/admin/analytics" className="btn-secondary text-sm px-4 py-2">
+                <ChartBarIcon className="h-4 w-4 mr-2" />
+                Analytics
+              </Link>
+              <Link href="/admin/seed" className="btn-secondary text-sm px-4 py-2">
+                <Cog6ToothIcon className="h-4 w-4 mr-2" />
                 Seed Data
               </Link>
-              <span className="text-sm text-gray-700">
-                {user.role === 'admin' ? 'Admin' : 'Officer'}: {user.name}
-              </span>
+              <div className="flex items-center space-x-3">
+                <div className="feature-icon !p-2">
+                  <UsersIcon className="h-5 w-5 text-white" />
+                </div>
+                <div className="hidden md:block">
+                  <p className="text-sm font-semibold text-heading">{user.role === 'admin' ? 'System Admin' : 'Department Officer'}</p>
+                  <p className="text-xs text-caption">{user.name}</p>
+                </div>
+              </div>
               <button
                 onClick={logout}
-                className="text-sm text-gray-500 hover:text-gray-700"
+                className="btn-secondary px-4 py-2 text-sm"
               >
                 Sign Out
               </button>
@@ -271,68 +309,110 @@ export default function AdminDashboard() {
         </div>
       </nav>
 
+      {/* Hero Section */}
+      <section className="hero-gradient hero-pattern relative pt-20 pb-16 overflow-hidden">
+        <div className="absolute inset-0 bg-black/20"></div>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20">
+          <div className="text-center">
+            <div className="animate-fade-in-up">
+              <h1 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">
+                <span className="block">{user.role === 'admin' ? 'System Administration' : 'Officer Dashboard'}</span>
+                <span className="block bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                  Control Center
+                </span>
+              </h1>
+            </div>
+            <div className="animate-fade-in-up stagger-1">
+              <p className="mt-4 max-w-2xl mx-auto text-xl text-blue-100 leading-relaxed">
+                Efficiently manage citizen appointments, track service delivery, and maintain 
+                government service quality standards.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">
-            {user.role === 'admin' ? 'Admin Dashboard' : 'Officer Dashboard'}
-          </h1>
-          <p className="mt-1 text-sm text-gray-600">
-            Manage appointments and government services
-          </p>
+
+        {/* Statistics Overview */}
+        <div className="mb-12">
+          <div className="text-center mb-8 animate-fade-in-up">
+            <h2 className="text-3xl font-bold text-heading mb-4">
+              Management Overview
+            </h2>
+            <p className="text-lg text-body max-w-2xl mx-auto">
+              Real-time statistics and key performance indicators for government service delivery
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {/* Today's Appointments */}
+            <div className="card-featured p-6 text-center animate-fade-in-up">
+              <div className="feature-icon mx-auto mb-4">
+                <CalendarDaysIcon className="h-6 w-6 text-white" />
+              </div>
+              <div className="text-3xl font-bold text-heading mb-2">{todayAppointments.length}</div>
+              <div className="text-caption">Today's Appointments</div>
+              <div className="mt-3 text-blue-600 text-sm font-semibold">
+                {todayAppointments.length > 0 ? 'Active day' : 'Light schedule'}
+              </div>
+            </div>
+
+            {/* Pending Approval */}
+            <div className="card-featured p-6 text-center animate-fade-in-up stagger-1">
+              <div className="feature-icon mx-auto mb-4">
+                <ClockIcon className="h-6 w-6 text-white" />
+              </div>
+              <div className="text-3xl font-bold text-heading mb-2">{pendingAppointments.length}</div>
+              <div className="text-caption">Pending Approval</div>
+              <div className="mt-3 text-amber-600 text-sm font-semibold">
+                {pendingAppointments.length > 0 ? 'Needs attention' : 'All clear'}
+              </div>
+            </div>
+
+            {/* Confirmed */}
+            <div className="card-featured p-6 text-center animate-fade-in-up stagger-2">
+              <div className="feature-icon mx-auto mb-4">
+                <CheckCircleIcon className="h-6 w-6 text-white" />
+              </div>
+              <div className="text-3xl font-bold text-heading mb-2">{confirmedAppointments.length}</div>
+              <div className="text-caption">Confirmed</div>
+              <div className="mt-3 text-emerald-600 text-sm font-semibold">
+                Ready to serve
+              </div>
+            </div>
+
+            {/* Total Appointments */}
+            <div className="card-featured p-6 text-center animate-fade-in-up stagger-3">
+              <div className="feature-icon mx-auto mb-4">
+                <ChartBarIcon className="h-6 w-6 text-white" />
+              </div>
+              <div className="text-3xl font-bold text-heading mb-2">{appointments.length}</div>
+              <div className="text-caption">Total Appointments</div>
+              <div className="mt-3 text-purple-600 text-sm font-semibold">
+                System activity
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-            <div className="flex items-center">
-              <CalendarDaysIcon className="h-8 w-8 text-blue-600" />
-              <div className="ml-4">
-                <h3 className="text-lg font-medium text-gray-900">{todayAppointments.length}</h3>
-                <p className="text-sm text-gray-500">Today's Appointments</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-            <div className="flex items-center">
-              <ClockIcon className="h-8 w-8 text-yellow-600" />
-              <div className="ml-4">
-                <h3 className="text-lg font-medium text-gray-900">{pendingAppointments.length}</h3>
-                <p className="text-sm text-gray-500">Pending Approval</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-            <div className="flex items-center">
-              <CheckCircleIcon className="h-8 w-8 text-green-600" />
-              <div className="ml-4">
-                <h3 className="text-lg font-medium text-gray-900">{confirmedAppointments.length}</h3>
-                <p className="text-sm text-gray-500">Confirmed</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-            <div className="flex items-center">
-              <UsersIcon className="h-8 w-8 text-purple-600" />
-              <div className="ml-4">
-                <h3 className="text-lg font-medium text-gray-900">{appointments.length}</h3>
-                <p className="text-sm text-gray-500">Total Appointments</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Filters */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-          <div className="flex flex-wrap gap-4">
+        {/* Filters Section */}
+        <div className="feature-card p-6 mb-8 animate-fade-in-up">
+          <div className="flex items-center justify-between mb-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+              <h3 className="text-xl font-bold text-heading">Filter Appointments</h3>
+              <p className="text-body mt-1">Refine your view to focus on specific appointments</p>
+            </div>
+            <DocumentTextIcon className="h-6 w-6 text-blue-600" />
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <label className="block text-sm font-semibold text-heading mb-2">Status Filter</label>
               <select
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
-                className="block w-40 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                className="input-field w-full"
               >
                 <option value="all">All Status</option>
                 <option value="pending">Pending</option>
@@ -344,35 +424,49 @@ export default function AdminDashboard() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+              <label className="block text-sm font-semibold text-heading mb-2">Date Filter</label>
               <input
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                className="block w-40 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                className="input-field w-full"
               />
             </div>
 
-            <div className="flex items-end">
+            <div className="flex flex-col justify-end">
               <button
                 onClick={() => {
                   setSelectedStatus('all');
                   setSelectedDate('');
                 }}
-                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
+                className="btn-secondary"
               >
-                Clear Filters
+                Clear All Filters
               </button>
             </div>
           </div>
+          
+          <div className="mt-4 flex items-center text-caption text-sm">
+            <span>Showing {filteredAppointments.length} of {appointments.length} appointments</span>
+          </div>
         </div>
 
-        {/* Appointments Table */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-medium text-gray-900">
-              Appointments ({filteredAppointments.length})
-            </h2>
+        {/* Appointments Management */}
+        <div className="feature-card overflow-hidden animate-fade-in-up">
+          <div className="px-6 py-6 border-b border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold text-heading">
+                  Appointment Management
+                </h2>
+                <p className="text-body mt-1">
+                  {filteredAppointments.length} appointments found
+                </p>
+              </div>
+              <div className="feature-icon">
+                <UsersIcon className="h-6 w-6 text-white" />
+              </div>
+            </div>
           </div>
 
           {filteredAppointments.length > 0 ? (
@@ -432,28 +526,29 @@ export default function AdminDashboard() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(appointment.status)}`}>
-                          {getStatusIcon(appointment.status)}
-                          <span className="ml-1">{appointment.status}</span>
-                        </span>
+                        <div className={`${getStatusComponent(appointment.status)}`}>
+                          {appointment.status}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {appointment.referenceNumber}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex space-x-2">
+                        <div className="flex flex-wrap gap-2">
                           {appointment.status === 'pending' && (
                             <>
                               <button
                                 onClick={() => updateAppointmentStatus(appointment.id, 'confirmed')}
-                                className="text-green-600 hover:text-green-900"
+                                className="btn-success text-xs px-3 py-1"
                               >
+                                <CheckCircleIcon className="h-3 w-3 mr-1" />
                                 Confirm
                               </button>
                               <button
                                 onClick={() => updateAppointmentStatus(appointment.id, 'cancelled')}
-                                className="text-red-600 hover:text-red-900"
+                                className="bg-red-100 text-red-700 hover:bg-red-200 text-xs px-3 py-1 rounded-lg font-semibold transition-colors"
                               >
+                                <XCircleIcon className="h-3 w-3 mr-1 inline" />
                                 Cancel
                               </button>
                             </>
@@ -462,19 +557,21 @@ export default function AdminDashboard() {
                             <>
                               <button
                                 onClick={() => updateAppointmentStatus(appointment.id, 'completed')}
-                                className="text-blue-600 hover:text-blue-900"
+                                className="btn-primary text-xs px-3 py-1"
                               >
+                                <CheckCircleIcon className="h-3 w-3 mr-1" />
                                 Complete
                               </button>
                               <button
                                 onClick={() => updateAppointmentStatus(appointment.id, 'no-show')}
-                                className="text-orange-600 hover:text-orange-900"
+                                className="bg-amber-100 text-amber-700 hover:bg-amber-200 text-xs px-3 py-1 rounded-lg font-semibold transition-colors"
                               >
+                                <ExclamationTriangleIcon className="h-3 w-3 mr-1 inline" />
                                 No Show
                               </button>
                             </>
                           )}
-                          <button className="text-indigo-600 hover:text-indigo-900">
+                          <button className="btn-secondary text-xs px-3 py-1">
                             View Details
                           </button>
                         </div>
@@ -485,12 +582,28 @@ export default function AdminDashboard() {
               </table>
             </div>
           ) : (
-            <div className="text-center py-12">
-              <CalendarDaysIcon className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No appointments found</h3>
-              <p className="mt-1 text-sm text-gray-500">
-                Appointments will appear here once citizens start booking.
+            <div className="text-center py-16">
+              <div className="feature-icon mx-auto mb-6">
+                <CalendarDaysIcon className="h-8 w-8 text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-heading mb-4">No appointments found</h3>
+              <p className="text-body text-lg mb-6 max-w-md mx-auto">
+                {selectedStatus === 'all' && !selectedDate 
+                  ? 'Appointments will appear here once citizens start booking services.'
+                  : 'No appointments match your current filters. Try adjusting your search criteria.'
+                }
               </p>
+              {(selectedStatus !== 'all' || selectedDate) && (
+                <button
+                  onClick={() => {
+                    setSelectedStatus('all');
+                    setSelectedDate('');
+                  }}
+                  className="btn-secondary"
+                >
+                  Clear Filters
+                </button>
+              )}
             </div>
           )}
         </div>

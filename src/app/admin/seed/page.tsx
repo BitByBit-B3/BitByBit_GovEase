@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { seedDatabase } from '@/utils/seedData';
-import { BuildingOfficeIcon } from '@heroicons/react/24/outline';
+import { BuildingOfficeIcon, ArrowRightIcon, CheckCircleIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 
 export default function SeedPage() {
@@ -24,106 +24,196 @@ export default function SeedPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm">
+    <div className="min-h-screen">
+      {/* Modern Glass Navigation */}
+      <nav className="nav-glass fixed w-full top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16 items-center">
-            <Link href="/" className="flex items-center">
-              <BuildingOfficeIcon className="h-8 w-8 text-blue-600" />
-              <span className="ml-2 text-xl font-bold text-gray-900">GovEase</span>
+          <div className="flex justify-between h-20 items-center">
+            <Link href="/" className="flex items-center animate-fade-in-down">
+              <div className="feature-icon mr-3">
+                <BuildingOfficeIcon className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <span className="text-2xl font-bold text-heading">GovEase</span>
+                <div className="gov-badge text-xs mt-1">Database Management</div>
+              </div>
             </Link>
+            <div className="flex space-x-3 animate-fade-in-down stagger-1">
+              <Link href="/admin" className="btn-secondary">
+                Admin Panel
+              </Link>
+              <Link href="/" className="btn-primary">
+                Home
+              </Link>
+            </div>
           </div>
         </div>
       </nav>
 
-      <main className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Database Seeding</h1>
-          <p className="text-gray-600 mb-6">
-            This page allows you to populate the database with sample departments and services 
-            for testing purposes.
-          </p>
+      {/* Hero Section */}
+      <section className="hero-gradient hero-pattern relative pt-20 pb-16 overflow-hidden">
+        <div className="absolute inset-0 bg-black/20"></div>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20">
+          <div className="text-center">
+            <div className="animate-fade-in-up">
+              <h1 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">
+                <span className="block">Database</span>
+                <span className="block bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                  Seeding Portal
+                </span>
+              </h1>
+            </div>
+            <div className="animate-fade-in-up stagger-1">
+              <p className="mt-4 max-w-2xl mx-auto text-xl text-blue-100 leading-relaxed">
+                Initialize your GovEase platform with sample departments and services 
+                for testing and demonstration purposes.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
 
-          <div className="space-y-4">
-            <div className="border border-yellow-200 bg-yellow-50 rounded-md p-4">
-              <h3 className="text-sm font-medium text-yellow-800">What will be created:</h3>
-              <ul className="mt-2 text-sm text-yellow-700 list-disc list-inside space-y-1">
-                <li>4 Government Departments (Motor Traffic, Immigration, Registrar General, Inland Revenue)</li>
-                <li>12 Services across all departments</li>
-                <li>Complete service details including required documents and fees</li>
-              </ul>
+      <main className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <div className="feature-card p-8 animate-fade-in-up">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h1 className="text-3xl font-bold text-heading mb-2">Database Seeding Portal</h1>
+              <p className="text-body text-lg">
+                Initialize your GovEase platform with comprehensive sample data for testing and development.
+              </p>
+            </div>
+            <div className="feature-icon">
+              <BuildingOfficeIcon className="h-8 w-8 text-white" />
+            </div>
+          </div>
+
+          <div className="space-y-8">
+            <div className="card-featured p-6">
+              <div className="flex items-center mb-4">
+                <ExclamationTriangleIcon className="h-6 w-6 text-amber-600 mr-3" />
+                <h3 className="text-lg font-bold text-heading">What will be created:</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="flex items-center p-3 bg-blue-50 rounded-lg">
+                  <BuildingOfficeIcon className="h-5 w-5 mr-3 text-blue-600" />
+                  <div>
+                    <span className="text-body font-semibold">4 Departments</span>
+                    <p className="text-caption text-sm">Government offices</p>
+                  </div>
+                </div>
+                <div className="flex items-center p-3 bg-emerald-50 rounded-lg">
+                  <CheckCircleIcon className="h-5 w-5 mr-3 text-emerald-600" />
+                  <div>
+                    <span className="text-body font-semibold">12 Services</span>
+                    <p className="text-caption text-sm">Across all departments</p>
+                  </div>
+                </div>
+                <div className="flex items-center p-3 bg-purple-50 rounded-lg">
+                  <ArrowRightIcon className="h-5 w-5 mr-3 text-purple-600" />
+                  <div>
+                    <span className="text-body font-semibold">Complete Details</span>
+                    <p className="text-caption text-sm">Documents & fees included</p>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {result && (
-              <div className={`border rounded-md p-4 ${
+              <div className={`card-featured p-6 ${
                 result.success 
-                  ? 'border-green-200 bg-green-50 text-green-800' 
-                  : 'border-red-200 bg-red-50 text-red-800'
+                  ? 'bg-emerald-50 border-emerald-200' 
+                  : 'bg-red-50 border-red-200'
               }`}>
                 {result.success ? (
-                  <div>
-                    <h3 className="font-medium">Success!</h3>
-                    <p className="mt-1 text-sm">{result.message}</p>
+                  <div className="flex items-start">
+                    <CheckCircleIcon className="h-6 w-6 text-emerald-600 mr-3 mt-0.5" />
+                    <div>
+                      <h3 className="text-lg font-bold text-emerald-800 mb-2">Database Seeded Successfully!</h3>
+                      <p className="text-emerald-700">{result.message}</p>
+                    </div>
                   </div>
                 ) : (
-                  <div>
-                    <h3 className="font-medium">Error occurred</h3>
-                    <p className="mt-1 text-sm">{result.error?.message || 'Unknown error'}</p>
+                  <div className="flex items-start">
+                    <ExclamationTriangleIcon className="h-6 w-6 text-red-600 mr-3 mt-0.5" />
+                    <div>
+                      <h3 className="text-lg font-bold text-red-800 mb-2">Seeding Failed</h3>
+                      <p className="text-red-700">{result.error?.message || 'An unknown error occurred'}</p>
+                    </div>
                   </div>
                 )}
               </div>
             )}
 
-            <div className="flex space-x-4">
+            <div className="flex flex-col sm:flex-row gap-4">
               <button
                 onClick={handleSeed}
                 disabled={loading}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                className="btn-primary flex-1 py-4 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? 'Seeding Database...' : 'Seed Database'}
+                {loading ? (
+                  <div className="flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                    Seeding Database...
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center">
+                    <BuildingOfficeIcon className="h-5 w-5 mr-2" />
+                    Initialize Database
+                  </div>
+                )}
               </button>
 
-              <Link
-                href="/services"
-                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
+              <Link href="/services" className="btn-secondary flex-1 py-4 text-center">
+                <CheckCircleIcon className="h-5 w-5 mr-2 inline" />
                 View Services
               </Link>
 
-              <Link
-                href="/"
-                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                Back to Home
+              <Link href="/admin" className="btn-secondary flex-1 py-4 text-center">
+                <ArrowRightIcon className="h-5 w-5 mr-2 inline" />
+                Admin Panel
               </Link>
             </div>
           </div>
 
-          <div className="mt-8 border-t border-gray-200 pt-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Sample Data Preview</h3>
+          <div className="mt-12 border-t border-gray-100 pt-8">
+            <h3 className="text-2xl font-bold text-heading mb-6">Sample Data Preview</h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h4 className="font-medium text-gray-900 mb-2">Departments</h4>
-                <ul className="text-sm text-gray-600 space-y-1">
-                  <li>• Department of Motor Traffic</li>
-                  <li>• Department of Immigration & Emigration</li>
-                  <li>• Registrar General's Department</li>
-                  <li>• Department of Inland Revenue</li>
-                </ul>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="card-featured p-6">
+                <div className="flex items-center mb-4">
+                  <BuildingOfficeIcon className="h-5 w-5 text-blue-600 mr-3" />
+                  <h4 className="text-lg font-bold text-heading">Government Departments</h4>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex items-center p-2 bg-blue-50 rounded">
+                    <span className="text-body">🚗 Department of Motor Traffic</span>
+                  </div>
+                  <div className="flex items-center p-2 bg-blue-50 rounded">
+                    <span className="text-body">✈️ Department of Immigration & Emigration</span>
+                  </div>
+                  <div className="flex items-center p-2 bg-blue-50 rounded">
+                    <span className="text-body">📋 Registrar General's Department</span>
+                  </div>
+                  <div className="flex items-center p-2 bg-blue-50 rounded">
+                    <span className="text-body">💰 Department of Inland Revenue</span>
+                  </div>
+                </div>
               </div>
 
-              <div>
-                <h4 className="font-medium text-gray-900 mb-2">Sample Services</h4>
-                <ul className="text-sm text-gray-600 space-y-1">
-                  <li>• Driving License Application</li>
-                  <li>• Passport Application</li>
-                  <li>• Birth Certificate</li>
-                  <li>• Tax Registration</li>
-                  <li>• Vehicle Registration</li>
-                  <li>• Marriage Certificate</li>
-                  <li>• And 6 more services...</li>
-                </ul>
+              <div className="card-featured p-6">
+                <div className="flex items-center mb-4">
+                  <CheckCircleIcon className="h-5 w-5 text-emerald-600 mr-3" />
+                  <h4 className="text-lg font-bold text-heading">Sample Services</h4>
+                </div>
+                <div className="space-y-2">
+                  <div className="text-body">• Driving License Application</div>
+                  <div className="text-body">• Passport Application</div>
+                  <div className="text-body">• Birth Certificate</div>
+                  <div className="text-body">• Tax Registration</div>
+                  <div className="text-body">• Vehicle Registration</div>
+                  <div className="text-body">• Marriage Certificate</div>
+                  <div className="text-caption">• And 6 more comprehensive services...</div>
+                </div>
               </div>
             </div>
           </div>
