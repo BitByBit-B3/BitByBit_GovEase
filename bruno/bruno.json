@@ -1,0 +1,22 @@
+{
+  "version": "1",
+  "name": "Next.js Firebase App",
+  "type": "collection",
+  "environments": {
+    "development": {
+      "baseUrl": "http://localhost:3000",
+      "authToken": "",
+      "userId": ""
+    },
+    "staging": {
+      "baseUrl": "https://staging.yourapp.com",
+      "authToken": "",
+      "userId": ""
+    },
+    "production": {
+      "baseUrl": "https://yourapp.com",
+      "authToken": "",
+      "userId": ""
+    }
+  }
+}

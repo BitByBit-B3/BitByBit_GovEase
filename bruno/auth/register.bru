@@ -1,0 +1,37 @@
+meta {
+  name: User Registration
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/auth/register
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "newuser@example.com",
+    "password": "newpassword123",
+    "displayName": "New User"
+  }
+}
+
+assert {
+  res.status: eq 201
+  res.body.success: eq true
+  res.body.user: isDefined
+}
+
+tests {
+  test("Registration creates new user", function() {
+    expect(res.getBody().user).to.be.an('object');
+    expect(res.getBody().user.email).to.equal('newuser@example.com');
+    expect(res.getBody().user.displayName).to.equal('New User');
+  });
+  
+  test("Password is not returned", function() {
+    expect(res.getBody().user.password).to.be.undefined;
+  });
+}

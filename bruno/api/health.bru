@@ -1,0 +1,30 @@
+meta {
+  name: Health Check
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/health
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq "ok"
+  res.body.timestamp: isDefined
+}
+
+tests {
+  test("Health endpoint returns OK status", function() {
+    expect(res.getBody().status).to.equal('ok');
+  });
+  
+  test("Timestamp is recent", function() {
+    const timestamp = new Date(res.getBody().timestamp);
+    const now = new Date();
+    const diffInSeconds = (now - timestamp) / 1000;
+    expect(diffInSeconds).to.be.lessThan(10);
+  });
+}
