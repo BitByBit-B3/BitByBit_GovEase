@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, useParams } from 'next/navigation';
-import { doc, getDoc, collection, addDoc, query, where, getDocs, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, addDoc, query, where, getDocs, updateDoc, Timestamp } from 'firebase/firestore';
 import { db, storage } from '@/lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Service, Department, Appointment, UploadedDocument } from '@/types';
@@ -17,6 +17,7 @@ import 'react-calendar/dist/Calendar.css';
 import QRCode from 'qrcode';
 import { v4 as uuidv4 } from 'uuid';
 import { format, addDays, isSameDay, isWeekend } from 'date-fns';
+import { createSeedData } from '@/utils/createSeedData';
 import { 
   BuildingOfficeIcon,
   CalendarDaysIcon,
@@ -168,12 +169,86 @@ export default function BookAppointmentPage() {
     return uploadedDocs;
   };
 
+  const testFirebaseWrite = async () => {
+    if (!user) {
+      alert('No user logged in');
+      return;
+    }
+
+    try {
+      console.log('Testing Firebase write...');
+      const testData = {
+        userId: user.id,
+        testField: 'test value',
+        timestamp: Timestamp.fromDate(new Date())
+      };
+      
+      const testRef = await addDoc(collection(db, 'test_collection'), testData);
+      console.log('TEST SUCCESS: Document written with ID:', testRef.id);
+      alert('Firebase write test successful! Check console.');
+    } catch (error) {
+      console.error('TEST FAILED:', error);
+      alert('Firebase write test failed! Check console.');
+    }
+  };
+
+  const forceCreateAppointment = async () => {
+    if (!user) {
+      alert('No user logged in');
+      return;
+    }
+
+    try {
+      console.log('FORCE CREATING APPOINTMENT...');
+      const testAppointment = {
+        userId: user.id,
+        serviceId: 'test-service',
+        departmentId: 'test-dept',
+        date: Timestamp.fromDate(new Date()),
+        timeSlot: '10:00-11:00',
+        status: 'pending',
+        referenceNumber: `TEST${Date.now()}`,
+        notes: 'TEST APPOINTMENT',
+        documents: [],
+        qrCode: '',
+        createdAt: Timestamp.fromDate(new Date()),
+        updatedAt: Timestamp.fromDate(new Date()),
+      };
+      
+      console.log('Creating test appointment:', testAppointment);
+      const docRef = await addDoc(collection(db, 'appointments'), testAppointment);
+      console.log('SUCCESS! Appointment created with ID:', docRef.id);
+      alert(`SUCCESS! Appointment created with ID: ${docRef.id}. Check Firebase Console!`);
+    } catch (error) {
+      console.error('FORCE CREATE FAILED:', error);
+      alert(`FORCE CREATE FAILED: ${error}`);
+    }
+  };
+
+  const seedAllData = async () => {
+    if (!user) {
+      alert('No user logged in');
+      return;
+    }
+
+    try {
+      toast.success('Creating seed data... Please wait.');
+      const result = await createSeedData(user.id);
+      alert(`✅ SUCCESS! Created ${result.departments} departments, ${result.services} services, and ${result.appointments} appointments!`);
+      toast.success('Seed data created successfully!');
+    } catch (error) {
+      console.error('Error creating seed data:', error);
+      alert(`❌ Error creating seed data: ${error}`);
+      toast.error('Failed to create seed data');
+    }
+  };
+
   const generateQRCode = async (appointmentData: any): Promise<string> => {
     try {
       const qrData = JSON.stringify({
         appointmentId: appointmentData.id,
         referenceNumber: appointmentData.referenceNumber,
-        date: appointmentData.date,
+        date: appointmentData.date instanceof Date ? appointmentData.date.toISOString() : appointmentData.date.toDate().toISOString(),
         timeSlot: appointmentData.timeSlot,
         service: service?.name,
         department: department?.name,
@@ -200,13 +275,15 @@ export default function BookAppointmentPage() {
         userId: user.id,
         serviceId: service.id,
         departmentId: department.id,
-        date: data.date,
+        date: Timestamp.fromDate(data.date),
         timeSlot: data.timeSlot,
         status: 'pending',
         referenceNumber,
         notes: data.notes || '',
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        documents: [],
+        qrCode: '',
+        createdAt: Timestamp.fromDate(new Date()),
+        updatedAt: Timestamp.fromDate(new Date()),
       };
 
       const appointmentRef = await addDoc(collection(db, 'appointments'), appointmentData);
@@ -222,6 +299,7 @@ export default function BookAppointmentPage() {
       await updateDoc(appointmentRef, {
         documents: uploadedDocs,
         qrCode,
+        updatedAt: Timestamp.fromDate(new Date()),
       });
 
       // Create notification
@@ -231,14 +309,18 @@ export default function BookAppointmentPage() {
         title: 'Appointment Booked Successfully',
         message: `Your appointment for ${service.name} has been booked for ${format(data.date, 'PPP')} at ${data.timeSlot}. Reference: ${referenceNumber}`,
         read: false,
-        createdAt: new Date(),
+        createdAt: Timestamp.fromDate(new Date()),
       });
 
       toast.success('Appointment booked successfully!');
       router.push('/dashboard');
     } catch (error) {
       console.error('Error booking appointment:', error);
-      toast.error('Failed to book appointment');
+      if (error instanceof Error) {
+        toast.error(`Failed to book appointment: ${error.message}`);
+      } else {
+        toast.error('Failed to book appointment. Please try again.');
+      }
     } finally {
       setSubmitting(false);
       setUploading(false);
@@ -541,30 +623,40 @@ export default function BookAppointmentPage() {
                 />
               </div>
 
-              <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4 pt-6 border-t border-gray-100">
-                <Link
-                  href="/services"
-                  className="btn-secondary flex-1 text-center"
-                >
-                  Cancel Booking
-                </Link>
+              <div className="flex flex-col space-y-3 pt-6 border-t border-gray-100">
                 <button
-                  type="submit"
-                  disabled={submitting || !selectedDate || !selectedSlot}
-                  className="btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                  type="button"
+                  onClick={seedAllData}
+                  className="bg-blue-600 text-white px-4 py-2 rounded font-semibold hover:bg-blue-700"
                 >
-                  {submitting ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      {uploading ? 'Uploading Documents...' : 'Booking Appointment...'}
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircleIcon className="h-5 w-5 mr-2" />
-                      Confirm Appointment
-                    </>
-                  )}
+                  🌱 CREATE ALL DATA (Departments, Services, Appointments)
                 </button>
+                
+                <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
+                  <Link
+                    href="/services"
+                    className="btn-secondary flex-1 text-center"
+                  >
+                    Cancel Booking
+                  </Link>
+                  <button
+                    type="submit"
+                    disabled={submitting || !selectedDate || !selectedSlot}
+                    className="btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {submitting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        {uploading ? 'Uploading Documents...' : 'Booking Appointment...'}
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircleIcon className="h-5 w-5 mr-2" />
+                        Confirm Appointment
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </form>
           </div>

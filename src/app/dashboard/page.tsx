@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Appointment, Department, Service } from '@/types';
 import Link from 'next/link';
@@ -56,22 +56,27 @@ export default function Dashboard() {
       // Load appointments
       const appointmentsQuery = query(
         collection(db, 'appointments'),
-        where('userId', '==', user.id),
-        orderBy('date', 'desc')
+        where('userId', '==', user.id)
       );
       const appointmentsSnapshot = await getDocs(appointmentsQuery);
       const appointmentsData: Appointment[] = [];
       
       appointmentsSnapshot.forEach((doc) => {
-        appointmentsData.push({
+        const docData = doc.data();
+        const appointment = {
           id: doc.id,
-          ...doc.data(),
-          date: doc.data().date?.toDate() || new Date(),
-          createdAt: doc.data().createdAt?.toDate() || new Date(),
-          updatedAt: doc.data().updatedAt?.toDate() || new Date(),
-        } as Appointment);
+          ...docData,
+          date: docData.date?.toDate() || new Date(),
+          createdAt: docData.createdAt?.toDate() || new Date(),
+          updatedAt: docData.updatedAt?.toDate() || new Date(),
+        } as Appointment;
+        
+        appointmentsData.push(appointment);
       });
 
+      // Sort appointments by date (newest first)
+      appointmentsData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      
       setAppointments(appointmentsData);
 
       // Load related departments and services
@@ -81,30 +86,36 @@ export default function Dashboard() {
       // Load departments
       const departmentsData: { [key: string]: Department } = {};
       for (const deptId of uniqueDepartmentIds) {
-        const deptQuery = query(collection(db, 'departments'), where('__name__', '==', deptId));
-        const deptSnapshot = await getDocs(deptQuery);
-        deptSnapshot.forEach((doc) => {
-          departmentsData[doc.id] = {
-            id: doc.id,
-            ...doc.data(),
-            createdAt: doc.data().createdAt?.toDate() || new Date(),
-          } as Department;
-        });
+        try {
+          const deptDoc = await getDoc(doc(db, 'departments', deptId));
+          if (deptDoc.exists()) {
+            departmentsData[deptDoc.id] = {
+              id: deptDoc.id,
+              ...deptDoc.data(),
+              createdAt: deptDoc.data().createdAt?.toDate() || new Date(),
+            } as Department;
+          }
+        } catch (error) {
+          console.error(`Error loading department ${deptId}:`, error);
+        }
       }
       setDepartments(departmentsData);
 
       // Load services
       const servicesData: { [key: string]: Service } = {};
       for (const serviceId of uniqueServiceIds) {
-        const serviceQuery = query(collection(db, 'services'), where('__name__', '==', serviceId));
-        const serviceSnapshot = await getDocs(serviceQuery);
-        serviceSnapshot.forEach((doc) => {
-          servicesData[doc.id] = {
-            id: doc.id,
-            ...doc.data(),
-            createdAt: doc.data().createdAt?.toDate() || new Date(),
-          } as Service;
-        });
+        try {
+          const serviceDoc = await getDoc(doc(db, 'services', serviceId));
+          if (serviceDoc.exists()) {
+            servicesData[serviceDoc.id] = {
+              id: serviceDoc.id,
+              ...serviceDoc.data(),
+              createdAt: serviceDoc.data().createdAt?.toDate() || new Date(),
+            } as Service;
+          }
+        } catch (error) {
+          console.error(`Error loading service ${serviceId}:`, error);
+        }
       }
       setServices(servicesData);
 

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { collection, query, where, getDocs, orderBy, updateDoc, doc } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy, updateDoc, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Appointment, Department, Service, User } from '@/types';
 import Link from 'next/link';
@@ -50,19 +50,7 @@ export default function AdminDashboard() {
       setLoadingData(true);
 
       // Load appointments
-      let appointmentsQuery;
-      if (user.role === 'admin') {
-        appointmentsQuery = query(
-          collection(db, 'appointments'),
-          orderBy('date', 'desc')
-        );
-      } else {
-        // Officers see appointments for their department only
-        appointmentsQuery = query(
-          collection(db, 'appointments'),
-          orderBy('date', 'desc')
-        );
-      }
+      const appointmentsQuery = query(collection(db, 'appointments'));
 
       const appointmentsSnapshot = await getDocs(appointmentsQuery);
       const appointmentsData: Appointment[] = [];
@@ -85,6 +73,9 @@ export default function AdminDashboard() {
         departmentIds.add(appointmentData.departmentId);
       });
 
+      // Sort appointments by date (newest first)
+      appointmentsData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      
       setAppointments(appointmentsData);
 
       // Load related data
@@ -106,16 +97,16 @@ export default function AdminDashboard() {
     const usersData: { [key: string]: User } = {};
     for (const userId of userIds) {
       try {
-        const userQuery = query(collection(db, 'users'), where('__name__', '==', userId));
-        const userSnapshot = await getDocs(userQuery);
-        userSnapshot.forEach((doc) => {
+        const userDoc = await getDocs(query(collection(db, 'users'), where('__name__', '==', userId)));
+        if (!userDoc.empty) {
+          const doc = userDoc.docs[0];
           usersData[doc.id] = {
             id: doc.id,
             ...doc.data(),
             createdAt: doc.data().createdAt?.toDate() || new Date(),
             updatedAt: doc.data().updatedAt?.toDate() || new Date(),
           } as User;
-        });
+        }
       } catch (error) {
         console.error('Error loading user:', error);
       }
@@ -127,15 +118,14 @@ export default function AdminDashboard() {
     const servicesData: { [key: string]: Service } = {};
     for (const serviceId of serviceIds) {
       try {
-        const serviceQuery = query(collection(db, 'services'), where('__name__', '==', serviceId));
-        const serviceSnapshot = await getDocs(serviceQuery);
-        serviceSnapshot.forEach((doc) => {
-          servicesData[doc.id] = {
-            id: doc.id,
-            ...doc.data(),
-            createdAt: doc.data().createdAt?.toDate() || new Date(),
+        const serviceDoc = await getDoc(doc(db, 'services', serviceId));
+        if (serviceDoc.exists()) {
+          servicesData[serviceDoc.id] = {
+            id: serviceDoc.id,
+            ...serviceDoc.data(),
+            createdAt: serviceDoc.data()?.createdAt?.toDate() || new Date(),
           } as Service;
-        });
+        }
       } catch (error) {
         console.error('Error loading service:', error);
       }
@@ -147,15 +137,14 @@ export default function AdminDashboard() {
     const departmentsData: { [key: string]: Department } = {};
     for (const departmentId of departmentIds) {
       try {
-        const deptQuery = query(collection(db, 'departments'), where('__name__', '==', departmentId));
-        const deptSnapshot = await getDocs(deptQuery);
-        deptSnapshot.forEach((doc) => {
-          departmentsData[doc.id] = {
-            id: doc.id,
-            ...doc.data(),
-            createdAt: doc.data().createdAt?.toDate() || new Date(),
+        const deptDoc = await getDoc(doc(db, 'departments', departmentId));
+        if (deptDoc.exists()) {
+          departmentsData[deptDoc.id] = {
+            id: deptDoc.id,
+            ...deptDoc.data(),
+            createdAt: deptDoc.data()?.createdAt?.toDate() || new Date(),
           } as Department;
-        });
+        }
       } catch (error) {
         console.error('Error loading department:', error);
       }

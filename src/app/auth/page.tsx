@@ -9,7 +9,7 @@ import {
   signInWithEmailAndPassword,
   User as FirebaseUser 
 } from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, Timestamp } from 'firebase/firestore';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -78,7 +78,9 @@ function AuthPageContent() {
     try {
       await signInWithEmailAndPassword(auth, data.email, data.password);
       toast.success('Successfully signed in!');
+      // Don't redirect here - let the useEffect handle it
     } catch (error: any) {
+      console.error('Login error:', error);
       toast.error(error.message || 'Failed to sign in');
     } finally {
       setIsLoading(false);
@@ -102,8 +104,8 @@ function AuthPageContent() {
         phone: data.phone,
         nic: data.nic,
         role: data.role,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: Timestamp.fromDate(new Date()),
+        updatedAt: Timestamp.fromDate(new Date()),
       });
       
       toast.success('Account created successfully!');

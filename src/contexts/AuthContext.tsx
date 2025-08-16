@@ -42,7 +42,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
           if (userDoc.exists()) {
             const userData = userDoc.data();
-            setUser({
+            const userObj = {
               id: firebaseUser.uid,
               email: firebaseUser.email || '',
               name: userData.name || '',
@@ -51,10 +51,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               nic: userData.nic || '',
               createdAt: userData.createdAt?.toDate() || new Date(),
               updatedAt: userData.updatedAt?.toDate() || new Date(),
-            });
+            };
+            setUser(userObj);
+          } else {
+            setUser(null);
           }
         } catch (error) {
           console.error('Error fetching user data:', error);
+          setUser(null);
         }
       } else {
         setUser(null);
