@@ -1,0 +1,4 @@
+id,id,title,severity,message,read,type,createdAt
+"alert-001","alert-001","System Performance Update","low","All systems running smoothly. 99.8% uptime maintained this month.","false","info","2025-01-28T08:00:00.000Z"
+"alert-002","alert-002","Monthly Target Achieved","low","Congratulations! Department of Motor Traffic exceeded appointment targets by 15%.","true","success","2025-01-27T17:00:00.000Z"
+"alert-003","alert-003","High Demand Alert","medium","Passport services experiencing high demand. Consider extending operating hours.","false","warning","2025-01-26T14:30:00.000Z"
