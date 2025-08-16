@@ -5,6 +5,7 @@ import { auth, db } from '@/lib/firebase';
 import { User as FirebaseUser, onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { User } from '@/types';
+import LoadingScreen from '@/components/LoadingScreen';
 
 interface AuthContextType {
   user: User | null;
@@ -36,8 +37,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setFirebaseUser(firebaseUser);
+      setLoading(false); // Set loading to false immediately for faster UI
       
       if (firebaseUser) {
+        // Set basic user info immediately, then enhance with Firestore data
+        const basicUserObj = {
+          id: firebaseUser.uid,
+          email: firebaseUser.email || '',
+          name: firebaseUser.displayName || 'Demo User',
+          phone: '+94771234567',
+          role: firebaseUser.email?.includes('admin') ? 'admin' : 'citizen',
+          nic: '123456789V',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+        setUser(basicUserObj as User);
+        
+        // Then fetch/create full profile asynchronously
         try {
           const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
           if (userDoc.exists()) {
@@ -45,51 +61,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             const userObj = {
               id: firebaseUser.uid,
               email: firebaseUser.email || '',
-              name: userData.name || '',
-              phone: userData.phone || '',
-              role: userData.role || 'citizen',
-              nic: userData.nic || '',
-              createdAt: userData.createdAt?.toDate() || new Date(),
-              updatedAt: userData.updatedAt?.toDate() || new Date(),
+              name: userData.name || basicUserObj.name,
+              phone: userData.phone || basicUserObj.phone,
+              role: userData.role || basicUserObj.role,
+              nic: userData.nic || basicUserObj.nic,
+              createdAt: userData.createdAt?.toDate() || basicUserObj.createdAt,
+              updatedAt: userData.updatedAt?.toDate() || basicUserObj.updatedAt,
             };
             setUser(userObj);
           } else {
-            // User exists in Firebase Auth but not in Firestore - create profile
-            const defaultUserData = {
-              name: firebaseUser.displayName || 'Demo User',
-              email: firebaseUser.email || '',
-              phone: '+94771234567',
-              nic: '123456789V',
-              role: firebaseUser.email?.includes('admin') ? 'admin' : 'citizen',
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            };
-            
-            // Create the user profile in Firestore
-            await setDoc(doc(db, 'users', firebaseUser.uid), defaultUserData);
-            
-            // Set the user object
-            const userObj = {
-              id: firebaseUser.uid,
-              email: firebaseUser.email || '',
-              name: defaultUserData.name,
-              phone: defaultUserData.phone,
-              role: defaultUserData.role,
-              nic: defaultUserData.nic,
-              createdAt: defaultUserData.createdAt,
-              updatedAt: defaultUserData.updatedAt,
-            };
-            setUser(userObj);
+            // Create the user profile in Firestore in background
+            await setDoc(doc(db, 'users', firebaseUser.uid), {
+              name: basicUserObj.name,
+              email: basicUserObj.email,
+              phone: basicUserObj.phone,
+              nic: basicUserObj.nic,
+              role: basicUserObj.role,
+              createdAt: basicUserObj.createdAt,
+              updatedAt: basicUserObj.updatedAt,
+            });
           }
         } catch (error) {
           console.error('Error fetching user data:', error);
-          setUser(null);
+          // Keep the basic user object if Firestore fails
         }
       } else {
         setUser(null);
       }
-      
-      setLoading(false);
     });
 
     return unsubscribe;

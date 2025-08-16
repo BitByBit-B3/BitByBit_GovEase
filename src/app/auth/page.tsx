@@ -16,6 +16,7 @@ import { z } from 'zod';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 import { BuildingOfficeIcon, ArrowRightIcon, UserGroupIcon } from '@heroicons/react/24/outline';
+import LoadingScreen from '@/components/LoadingScreen';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -117,11 +118,7 @@ function AuthPageContent() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">Loading...</div>
-      </div>
-    );
+    return <LoadingScreen message="Authenticating..." />;
   }
 
   return (

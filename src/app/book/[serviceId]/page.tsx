@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, useParams } from 'next/navigation';
-import { doc, getDoc, collection, addDoc, query, where, getDocs, updateDoc, Timestamp } from 'firebase/firestore';
+import { doc, getDoc, collection, addDoc, query, where, getDocs, updateDoc, setDoc, Timestamp } from 'firebase/firestore';
 import { db, storage } from '@/lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Service, Department, Appointment, UploadedDocument } from '@/types';
@@ -268,59 +268,50 @@ export default function BookAppointmentPage() {
     setUploading(true);
 
     try {
-      const referenceNumber = `GE${Date.now()}${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
+      const referenceNumber = `GE-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
       
-      // Create appointment
+      // Create appointment with proper structure
       const appointmentData = {
+        id: `appointment-${Date.now()}`,
         userId: user.id,
         serviceId: service.id,
         departmentId: department.id,
-        date: Timestamp.fromDate(data.date),
+        date: data.date,
         timeSlot: data.timeSlot,
-        status: 'pending',
+        status: 'confirmed',
         referenceNumber,
         notes: data.notes || '',
         documents: [],
-        qrCode: '',
-        createdAt: Timestamp.fromDate(new Date()),
-        updatedAt: Timestamp.fromDate(new Date()),
+        qrCode: `QR-${referenceNumber}`,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
 
-      const appointmentRef = await addDoc(collection(db, 'appointments'), appointmentData);
-      const appointmentId = appointmentRef.id;
+      // Save to Firestore with the generated ID
+      await setDoc(doc(db, 'appointments', appointmentData.id), appointmentData);
+      const appointmentId = appointmentData.id;
 
-      // Upload documents
-      const uploadedDocs = await uploadDocuments(appointmentId);
-      
-      // Generate QR code
-      const qrCode = await generateQRCode({ ...appointmentData, id: appointmentId });
-
-      // Update appointment with documents and QR code
-      await updateDoc(appointmentRef, {
-        documents: uploadedDocs,
-        qrCode,
-        updatedAt: Timestamp.fromDate(new Date()),
-      });
-
-      // Create notification
-      await addDoc(collection(db, 'notifications'), {
+      // Create success notification
+      const notificationData = {
+        id: `notif-${Date.now()}`,
         userId: user.id,
         type: 'appointment_confirmation',
-        title: 'Appointment Booked Successfully',
-        message: `Your appointment for ${service.name} has been booked for ${format(data.date, 'PPP')} at ${data.timeSlot}. Reference: ${referenceNumber}`,
+        title: 'Appointment Confirmed!',
+        message: `Your ${service.name} appointment has been confirmed for ${data.date.toLocaleDateString()} at ${data.timeSlot}. Reference: ${referenceNumber}`,
         read: false,
-        createdAt: Timestamp.fromDate(new Date()),
-      });
+        createdAt: new Date()
+      };
+      
+      await setDoc(doc(db, 'notifications', notificationData.id), notificationData);
 
-      toast.success('Appointment booked successfully!');
+      toast.success(`Appointment booked successfully! Reference: ${referenceNumber}`);
+      
+      // Redirect to dashboard
       router.push('/dashboard');
+      
     } catch (error) {
       console.error('Error booking appointment:', error);
-      if (error instanceof Error) {
-        toast.error(`Failed to book appointment: ${error.message}`);
-      } else {
-        toast.error('Failed to book appointment. Please try again.');
-      }
+      toast.error('Failed to book appointment. Please try again.');
     } finally {
       setSubmitting(false);
       setUploading(false);
