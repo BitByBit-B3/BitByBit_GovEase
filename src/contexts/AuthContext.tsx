@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { auth, db } from '@/lib/firebase';
 import { User as FirebaseUser, onAuthStateChanged, signOut } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { User } from '@/types';
 
 interface AuthContextType {
@@ -54,7 +54,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             };
             setUser(userObj);
           } else {
-            setUser(null);
+            // User exists in Firebase Auth but not in Firestore - create profile
+            const defaultUserData = {
+              name: firebaseUser.displayName || 'Demo User',
+              email: firebaseUser.email || '',
+              phone: '+94771234567',
+              nic: '123456789V',
+              role: firebaseUser.email?.includes('admin') ? 'admin' : 'citizen',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            };
+            
+            // Create the user profile in Firestore
+            await setDoc(doc(db, 'users', firebaseUser.uid), defaultUserData);
+            
+            // Set the user object
+            const userObj = {
+              id: firebaseUser.uid,
+              email: firebaseUser.email || '',
+              name: defaultUserData.name,
+              phone: defaultUserData.phone,
+              role: defaultUserData.role,
+              nic: defaultUserData.nic,
+              createdAt: defaultUserData.createdAt,
+              updatedAt: defaultUserData.updatedAt,
+            };
+            setUser(userObj);
           }
         } catch (error) {
           console.error('Error fetching user data:', error);
