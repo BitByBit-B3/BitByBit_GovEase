@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  govease:
+    build: .
+    container_name: govease-app
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    networks:
+      - govease-network
+
+  # Nginx reverse proxy (optional)
+  nginx:
+    image: nginx:alpine
+    container_name: govease-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - govease
+    networks:
+      - govease-network
+    restart: unless-stopped
+
+networks:
+  govease-network:
+    driver: bridge
+
+volumes:
+  govease_data:

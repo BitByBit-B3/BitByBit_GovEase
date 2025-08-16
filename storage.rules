@@ -1,0 +1,22 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Allow authenticated users to upload documents for appointments
+    match /appointments/{appointmentId}/{fileName} {
+      allow read, write: if request.auth != null && (
+        // User can access their own appointment documents
+        exists(/databases/(default)/documents/appointments/$(appointmentId)) &&
+        get(/databases/(default)/documents/appointments/$(appointmentId)).data.userId == request.auth.uid
+      ) || (
+        // Officers and admins can access all documents
+        exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
+        get(/databases/(default)/documents/users/$(request.auth.uid)).data.role in ['admin', 'officer']
+      );
+    }
+    
+    // Allow profile pictures and other user uploads
+    match /users/{userId}/{fileName} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}
