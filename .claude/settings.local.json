@@ -12,7 +12,10 @@
       "Bash(git add:*)",
       "Bash(git push:*)",
       "Bash(git pull:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(firebase deploy:*)",
+      "Bash(firebase login:*)",
+      "Bash(firebase projects:list:*)"
     ],
     "deny": []
   }

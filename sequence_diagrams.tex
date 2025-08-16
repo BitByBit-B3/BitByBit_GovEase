@@ -1,0 +1,633 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\usepackage{pgf-umlsd}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{enumitem}
+
+\geometry{margin=2.5cm}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{GovEase - Sequence Diagrams}
+\fancyhead[R]{Team BitByBit}
+\fancyfoot[C]{\thepage}
+
+% Colors
+\definecolor{primaryblue}{RGB}{59,130,246}
+\definecolor{darkgray}{RGB}{75,85,99}
+
+% Title formatting
+\titleformat{\section}{\Large\bfseries\color{primaryblue}}{}{0em}{}
+\titleformat{\subsection}{\large\bfseries\color{darkgray}}{}{0em}{}
+
+\title{\textbf{\color{primaryblue}GovEase Government Services Management System\\Sequence Diagrams}}
+\author{\textbf{Team BitByBit - Tech-Triathlon 2025}}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+\newpage
+
+\section{Introduction}
+
+This document presents comprehensive sequence diagrams for the GovEase Government Services Management System. These diagrams illustrate the key interactions between users, system components, and external services throughout various workflows within the platform.
+
+\subsection{System Components}
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Frontend}: Next.js React application providing user interface
+    \item \textbf{Firebase Auth}: Authentication and authorization service
+    \item \textbf{Firestore DB}: NoSQL database for application data
+    \item \textbf{Firebase Storage}: File storage for documents and media
+    \item \textbf{Notification Service}: Email and notification management
+    \item \textbf{QR Generator}: QR code generation for appointments
+\end{itemize}
+
+\subsection{User Roles}
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Citizen}: End users booking government services
+    \item \textbf{Officer}: Government officials managing appointments
+    \item \textbf{Admin}: System administrators with full access
+\end{itemize}
+
+\section{Appointment Booking Process}
+
+\begin{figure}[h!]
+\centering
+\begin{sequencediagram}
+\newthread{citizen}{Citizen}
+\newinst[1]{frontend}{Frontend}
+\newinst[1]{auth}{Auth Service}
+\newinst[1]{firestore}{Firestore DB}
+\newinst[1]{storage}{Firebase Storage}
+
+\begin{call}{citizen}{Login}{auth}{Success}
+\end{call}
+
+\begin{call}{citizen}{Browse Services}{frontend}{}
+\end{call}
+
+\begin{call}{frontend}{Fetch Departments}{firestore}{Department List}
+\end{call}
+
+\begin{call}{frontend}{Fetch Services}{firestore}{Service List}
+\end{call}
+
+\begin{call}{citizen}{Select Service \& Date}{frontend}{}
+\end{call}
+
+\begin{call}{citizen}{Upload Documents}{frontend}{}
+\end{call}
+
+\begin{call}{frontend}{Store Documents}{storage}{URLs}
+\end{call}
+
+\begin{call}{citizen}{Confirm Booking}{frontend}{}
+\end{call}
+
+\begin{call}{frontend}{Create Appointment}{firestore}{Appointment ID}
+\end{call}
+
+\begin{call}{frontend}{Generate QR Code}{frontend}{QR Code}
+\end{call}
+
+\begin{call}{frontend}{Send Notification}{firestore}{Notification Sent}
+\end{call}
+
+\begin{call}{frontend}{Booking Confirmation}{citizen}{}
+\end{call}
+
+\end{sequencediagram}
+\caption{Appointment Booking Sequence Diagram}
+\label{fig:booking_sequence}
+\end{figure}
+
+\newpage
+
+\section{Admin Dashboard Data Loading}
+
+\begin{figure}[h!]
+\centering
+\begin{sequencediagram}
+\newthread{admin}{Admin User}
+\newinst[1]{dashboard}{Admin Dashboard}
+\newinst[1]{auth}{Auth Context}
+\newinst[1]{firestore}{Firestore DB}
+
+\begin{call}{admin}{Access Dashboard}{dashboard}{}
+\end{call}
+
+\begin{call}{dashboard}{Verify Admin Role}{auth}{Role Verified}
+\end{call}
+
+\begin{call}{dashboard}{Load Appointments}{firestore}{Appointment List}
+\end{call}
+
+\begin{call}{dashboard}{Load Users}{firestore}{User Data}
+\end{call}
+
+\begin{call}{dashboard}{Load Services}{firestore}{Service Data}
+\end{call}
+
+\begin{call}{dashboard}{Load Departments}{firestore}{Department Data}
+\end{call}
+
+\begin{call}{dashboard}{Display Dashboard}{admin}{}
+\end{call}
+
+\begin{call}{admin}{Update Appointment Status}{dashboard}{}
+\end{call}
+
+\begin{call}{dashboard}{Update in Firestore}{firestore}{Update Confirmed}
+\end{call}
+
+\begin{call}{dashboard}{Refresh Dashboard}{admin}{}
+\end{call}
+
+\end{sequencediagram}
+\caption{Admin Dashboard Sequence Diagram}
+\label{fig:admin_sequence}
+\end{figure}
+
+\newpage
+
+\section{User Authentication Flow}
+
+\begin{figure}[h!]
+\centering
+\begin{sequencediagram}
+\newthread{user}{User}
+\newinst[1]{frontend}{Frontend}
+\newinst[1]{firebase}{Firebase Auth}
+\newinst[1]{firestore}{Firestore DB}
+
+\begin{call}{user}{Enter Credentials}{frontend}{}
+\end{call}
+
+\begin{call}{frontend}{Authenticate}{firebase}{Auth Token}
+\end{call}
+
+\begin{call}{frontend}{Fetch User Profile}{firestore}{User Data}
+\end{call}
+
+\begin{call}{frontend}{Set Auth Context}{frontend}{}
+\end{call}
+
+\begin{call}{frontend}{Redirect to Dashboard}{user}{}
+\end{call}
+
+\begin{call}{user}{Access Protected Route}{frontend}{}
+\end{call}
+
+\begin{call}{frontend}{Verify Token}{firebase}{Token Valid}
+\end{call}
+
+\begin{call}{frontend}{Check User Role}{firestore}{Role Data}
+\end{call}
+
+\begin{call}{frontend}{Grant/Deny Access}{user}{}
+\end{call}
+
+\end{sequencediagram}
+\caption{User Authentication Sequence Diagram}
+\label{fig:auth_sequence}
+\end{figure}
+
+\newpage
+
+\section{Document Upload and Review Process}
+
+\begin{figure}[h!]
+\centering
+\begin{sequencediagram}
+\newthread{citizen}{Citizen}
+\newinst[1]{frontend}{Frontend}
+\newinst[1]{storage}{Firebase Storage}
+\newinst[1]{firestore}{Firestore DB}
+\newinst[1]{officer}{Officer}
+
+\begin{call}{citizen}{Select Documents}{frontend}{}
+\end{call}
+
+\begin{call}{frontend}{Upload to Storage}{storage}{File URLs}
+\end{call}
+
+\begin{call}{frontend}{Update Appointment}{firestore}{Documents Added}
+\end{call}
+
+\begin{call}{frontend}{Create Notification}{firestore}{Officer Notified}
+\end{call}
+
+\begin{call}{officer}{Review Documents}{frontend}{}
+\end{call}
+
+\begin{call}{frontend}{Load Documents}{storage}{Document Data}
+\end{call}
+
+\begin{call}{officer}{Approve/Reject}{frontend}{}
+\end{call}
+
+\begin{call}{frontend}{Update Status}{firestore}{Status Updated}
+\end{call}
+
+\begin{call}{frontend}{Notify Citizen}{firestore}{Citizen Notified}
+\end{call}
+
+\begin{call}{frontend}{Send Status Update}{citizen}{}
+\end{call}
+
+\end{sequencediagram}
+\caption{Document Upload and Review Sequence Diagram}
+\label{fig:document_sequence}
+\end{figure}
+
+\newpage
+
+\section{Notification System Workflow}
+
+\begin{figure}[h!]
+\centering
+\begin{sequencediagram}
+\newthread{system}{System}
+\newinst[1]{scheduler}{Scheduler}
+\newinst[1]{firestore}{Firestore DB}
+\newinst[1]{email}{Email Service}
+\newinst[1]{citizen}{Citizen}
+
+\begin{call}{system}{Check Upcoming Appointments}{scheduler}{}
+\end{call}
+
+\begin{call}{scheduler}{Query Appointments}{firestore}{Appointments Due}
+\end{call}
+
+\begin{call}{scheduler}{Generate Reminder}{scheduler}{}
+\end{call}
+
+\begin{call}{scheduler}{Send Email Notification}{email}{Email Sent}
+\end{call}
+
+\begin{call}{email}{Deliver Email}{citizen}{}
+\end{call}
+
+\begin{call}{scheduler}{Update Notification Status}{firestore}{Status Updated}
+\end{call}
+
+\begin{call}{system}{Log Notification}{firestore}{Logged}
+\end{call}
+
+\end{sequencediagram}
+\caption{Automated Notification System Sequence Diagram}
+\label{fig:notification_sequence}
+\end{figure}
+
+\newpage
+
+\section{QR Code Verification Process}
+
+\begin{figure}[h!]
+\centering
+\begin{sequencediagram}
+\newthread{citizen}{Citizen}
+\newinst[1]{qrscanner}{QR Scanner}
+\newinst[1]{frontend}{Frontend}
+\newinst[1]{firestore}{Firestore DB}
+\newinst[1]{officer}{Officer}
+
+\begin{call}{citizen}{Show QR Code}{officer}{}
+\end{call}
+
+\begin{call}{officer}{Scan QR Code}{qrscanner}{QR Data}
+\end{call}
+
+\begin{call}{qrscanner}{Decode Appointment ID}{frontend}{Appointment ID}
+\end{call}
+
+\begin{call}{frontend}{Verify Appointment}{firestore}{Appointment Details}
+\end{call}
+
+\begin{call}{frontend}{Check Appointment Status}{firestore}{Status: Active}
+\end{call}
+
+\begin{call}{frontend}{Display Appointment Info}{officer}{}
+\end{call}
+
+\begin{call}{officer}{Mark as Attended}{frontend}{}
+\end{call}
+
+\begin{call}{frontend}{Update Status}{firestore}{Status: Completed}
+\end{call}
+
+\begin{call}{frontend}{Generate Receipt}{frontend}{Digital Receipt}
+\end{call}
+
+\begin{call}{frontend}{Send Completion Notice}{citizen}{}
+\end{call}
+
+\end{sequencediagram}
+\caption{QR Code Verification and Check-in Sequence Diagram}
+\label{fig:qr_verification_sequence}
+\end{figure}
+
+\newpage
+
+\section{Data Seeding Process}
+
+\begin{figure}[h!]
+\centering
+\begin{sequencediagram}
+\newthread{admin}{Admin}
+\newinst[1]{frontend}{Frontend}
+\newinst[1]{seedutil}{Seed Utility}
+\newinst[1]{firestore}{Firestore DB}
+
+\begin{call}{admin}{Click "CREATE ALL DATA"}{frontend}{}
+\end{call}
+
+\begin{call}{frontend}{Initialize Seed Process}{seedutil}{}
+\end{call}
+
+\begin{call}{seedutil}{Create Departments}{firestore}{3 Departments Created}
+\end{call}
+
+\begin{call}{seedutil}{Create Services}{firestore}{9 Services Created}
+\end{call}
+
+\begin{call}{seedutil}{Create Sample Users}{firestore}{Sample Users Created}
+\end{call}
+
+\begin{call}{seedutil}{Create Sample Appointments}{firestore}{Appointments Created}
+\end{call}
+
+\begin{call}{seedutil}{Setup Analytics Data}{firestore}{Analytics Initialized}
+\end{call}
+
+\begin{call}{seedutil}{Return Success Status}{frontend}{Seed Complete}
+\end{call}
+
+\begin{call}{frontend}{Show Success Message}{admin}{}
+\end{call}
+
+\begin{call}{frontend}{Refresh Page Data}{admin}{}
+\end{call}
+
+\end{sequencediagram}
+\caption{Database Seeding Process Sequence Diagram}
+\label{fig:seeding_sequence}
+\end{figure}
+
+\newpage
+
+\section{Officer Dashboard Management}
+
+\begin{figure}[h!]
+\centering
+\begin{sequencediagram}
+\newthread{officer}{Officer}
+\newinst[1]{dashboard}{Officer Dashboard}
+\newinst[1]{auth}{Auth Service}
+\newinst[1]{firestore}{Firestore DB}
+\newinst[1]{notification}{Notification Service}
+
+\begin{call}{officer}{Access Officer Panel}{dashboard}{}
+\end{call}
+
+\begin{call}{dashboard}{Verify Officer Role}{auth}{Role Confirmed}
+\end{call}
+
+\begin{call}{dashboard}{Load Department Appointments}{firestore}{Appointments List}
+\end{call}
+
+\begin{call}{dashboard}{Load Pending Documents}{firestore}{Documents to Review}
+\end{call}
+
+\begin{call}{dashboard}{Display Dashboard}{officer}{}
+\end{call}
+
+\begin{call}{officer}{Review Document}{dashboard}{}
+\end{call}
+
+\begin{call}{officer}{Approve/Reject Document}{dashboard}{}
+\end{call}
+
+\begin{call}{dashboard}{Update Document Status}{firestore}{Status Updated}
+\end{call}
+
+\begin{call}{dashboard}{Send Status Notification}{notification}{Citizen Notified}
+\end{call}
+
+\begin{call}{officer}{Update Appointment Status}{dashboard}{}
+\end{call}
+
+\begin{call}{dashboard}{Update Appointment}{firestore}{Appointment Updated}
+\end{call}
+
+\begin{call}{dashboard}{Log Officer Action}{firestore}{Action Logged}
+\end{call}
+
+\end{sequencediagram}
+\caption{Officer Dashboard Management Sequence Diagram}
+\label{fig:officer_dashboard_sequence}
+\end{figure}
+
+\newpage
+
+\section{Feedback Collection Process}
+
+\begin{figure}[h!]
+\centering
+\begin{sequencediagram}
+\newthread{citizen}{Citizen}
+\newinst[1]{frontend}{Frontend}
+\newinst[1]{firestore}{Firestore DB}
+\newinst[1]{analytics}{Analytics Service}
+
+\begin{call}{citizen}{Complete Service}{frontend}{}
+\end{call}
+
+\begin{call}{frontend}{Show Feedback Modal}{citizen}{}
+\end{call}
+
+\begin{call}{citizen}{Rate Service (1-5 stars)}{frontend}{}
+\end{call}
+
+\begin{call}{citizen}{Provide Comments}{frontend}{}
+\end{call}
+
+\begin{call}{citizen}{Submit Feedback}{frontend}{}
+\end{call}
+
+\begin{call}{frontend}{Validate Feedback}{frontend}{Validation Passed}
+\end{call}
+
+\begin{call}{frontend}{Store Feedback}{firestore}{Feedback Saved}
+\end{call}
+
+\begin{call}{frontend}{Update Service Rating}{firestore}{Rating Updated}
+\end{call}
+
+\begin{call}{frontend}{Update Analytics}{analytics}{Metrics Updated}
+\end{call}
+
+\begin{call}{frontend}{Thank User}{citizen}{}
+\end{call}
+
+\begin{call}{frontend}{Close Modal}{citizen}{}
+\end{call}
+
+\end{sequencediagram}
+\caption{Feedback Collection Process Sequence Diagram}
+\label{fig:feedback_sequence}
+\end{figure}
+
+\newpage
+
+\section{Error Handling and Recovery}
+
+\begin{figure}[h!]
+\centering
+\begin{sequencediagram}
+\newthread{user}{User}
+\newinst[1]{frontend}{Frontend}
+\newinst[1]{firestore}{Firestore DB}
+\newinst[1]{errorlog}{Error Logger}
+
+\begin{call}{user}{Perform Action}{frontend}{}
+\end{call}
+
+\begin{call}{frontend}{Process Request}{firestore}{Database Error}
+\end{call}
+
+\begin{call}{frontend}{Catch Error}{frontend}{}
+\end{call}
+
+\begin{call}{frontend}{Log Error Details}{errorlog}{Error Logged}
+\end{call}
+
+\begin{call}{frontend}{Display User-Friendly Message}{user}{}
+\end{call}
+
+\begin{call}{frontend}{Retry Logic}{firestore}{Retry Attempt}
+\end{call}
+
+\begin{call}{firestore}{Success on Retry}{frontend}{Success Response}
+\end{call}
+
+\begin{call}{frontend}{Update UI}{user}{}
+\end{call}
+
+\begin{call}{frontend}{Log Recovery}{errorlog}{Recovery Logged}
+\end{call}
+
+\end{sequencediagram}
+\caption{Error Handling and Recovery Sequence Diagram}
+\label{fig:error_handling_sequence}
+\end{figure}
+
+\newpage
+
+\section{Analytics Data Collection}
+
+\begin{figure}[h!]
+\centering
+\begin{sequencediagram}
+\newthread{system}{System Events}
+\newinst[1]{collector}{Analytics Collector}
+\newinst[1]{firestore}{Firestore DB}
+\newinst[1]{dashboard}{Analytics Dashboard}
+
+\begin{call}{system}{User Action Event}{collector}{}
+\end{call}
+
+\begin{call}{collector}{Process Event Data}{collector}{}
+\end{call}
+
+\begin{call}{collector}{Store Analytics Data}{firestore}{Data Stored}
+\end{call}
+
+\begin{call}{collector}{Update Metrics}{firestore}{Metrics Updated}
+\end{call}
+
+\begin{call}{system}{Appointment Created}{collector}{}
+\end{call}
+
+\begin{call}{collector}{Increment Counters}{firestore}{Counters Updated}
+\end{call}
+
+\begin{call}{system}{Service Completed}{collector}{}
+\end{call}
+
+\begin{call}{collector}{Calculate Completion Rate}{collector}{}
+\end{call}
+
+\begin{call}{collector}{Update Dashboard Data}{firestore}{Dashboard Data Updated}
+\end{call}
+
+\begin{call}{dashboard}{Refresh Analytics}{firestore}{Updated Metrics}
+\end{call}
+
+\end{sequencediagram}
+\caption{Analytics Data Collection Sequence Diagram}
+\label{fig:analytics_sequence}
+\end{figure}
+
+\newpage
+
+\section{Sequence Diagram Descriptions}
+
+\subsection{Appointment Booking Process}
+This diagram shows the complete flow when a citizen books an appointment, including authentication, service selection, document upload, and confirmation with QR code generation. The process ensures all required documents are uploaded and stored securely before generating the appointment confirmation.
+
+\subsection{Admin Dashboard Data Loading}
+Illustrates how the admin dashboard loads and displays various data from Firestore, including role verification and real-time updates. The dashboard provides comprehensive oversight of system operations with role-based access control.
+
+\subsection{User Authentication Flow}
+Shows the authentication process using Firebase Auth, including token verification and role-based access control. The system maintains secure sessions and validates user permissions for accessing different parts of the application.
+
+\subsection{Document Upload and Review Process}
+Demonstrates the workflow for document upload by citizens and subsequent review by officers, including notification mechanisms. This ensures proper document verification before appointment completion.
+
+\subsection{Notification System Workflow}
+Depicts the automated notification system that sends appointment reminders and status updates to citizens. The system runs scheduled checks and maintains notification logs for audit purposes.
+
+\subsection{QR Code Verification Process}
+Shows how QR codes are scanned and verified at government offices, including appointment validation and status updates. This provides a seamless check-in process for citizens attending their appointments.
+
+\subsection{Data Seeding Process}
+Illustrates the automated database seeding functionality that creates sample departments, services, and appointments for demonstration purposes. This enables quick system setup and testing.
+
+\subsection{Officer Dashboard Management}
+Demonstrates how government officers manage appointments, review documents, and update service statuses through their dedicated dashboard interface.
+
+\subsection{Feedback Collection Process}
+Shows the post-service feedback collection workflow, including rating submission and analytics updates to improve service quality.
+
+\subsection{Error Handling and Recovery}
+Depicts the system's error handling mechanisms, including logging, user-friendly error messages, and automatic retry logic for resilient operation.
+
+\subsection{Analytics Data Collection}
+Illustrates how user actions and system events are collected and processed for analytics, providing insights into system usage and performance metrics.
+
+\section{Technical Implementation Notes}
+
+\subsection{Firebase Integration}
+All sequence diagrams leverage Firebase services for:
+\begin{itemize}[leftmargin=*]
+    \item Authentication and authorization
+    \item Real-time database operations
+    \item File storage and retrieval
+    \item Cloud functions for server-side logic
+\end{itemize}
+
+\subsection{Real-time Updates}
+The system implements real-time data synchronization using Firestore listeners, ensuring all users see current information without manual refresh.
+
+\subsection{Security Considerations}
+Each workflow includes proper authentication checks and role-based access control to ensure data security and user privacy throughout the system.
+
+\end{document}
