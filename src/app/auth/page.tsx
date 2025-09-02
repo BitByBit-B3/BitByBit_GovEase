@@ -55,13 +55,16 @@ function AuthPageContent() {
 
   useEffect(() => {
     if (!loading && user) {
-      if (user.role === 'citizen') {
+      const redirectParam = searchParams.get('redirect');
+      if (redirectParam) {
+        router.push(redirectParam);
+      } else if (user.role === 'citizen') {
         router.push('/dashboard');
       } else if (user.role === 'officer' || user.role === 'admin') {
         router.push('/admin');
       }
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, searchParams]);
 
   const loginForm = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),

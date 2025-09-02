@@ -5,6 +5,7 @@ export interface User {
   phone: string;
   role: 'citizen' | 'officer' | 'admin';
   nic: string;
+  departmentId?: string; // For officers
   createdAt: Date;
   updatedAt: Date;
 }
@@ -44,10 +45,15 @@ export interface Appointment {
   userId: string;
   serviceId: string;
   departmentId: string;
+  slotId: string;
   date: Date;
   timeSlot: string;
-  status: 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no-show';
-  qrCode: string;
+  status: 'booked' | 'checked_in' | 'completed' | 'cancelled' | 'no-show' | 'pending' | 'confirmed';
+  qr: {
+    appointmentId: string;
+    issuedAt: Date;
+  };
+  qrCode?: string;
   referenceNumber: string;
   documents: UploadedDocument[];
   notes?: string;
@@ -58,13 +64,27 @@ export interface Appointment {
 
 export interface UploadedDocument {
   id: string;
+  ownerUid: string;
+  serviceId: string;
   name: string;
   type: string;
-  url: string;
+  storagePath: string;
   size: number;
-  uploadedAt: Date;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'submitted' | 'approved' | 'rejected';
   rejectionReason?: string;
+  createdAt: Date;
+}
+
+export interface Slot {
+  id: string;
+  serviceId: string;
+  departmentId: string;
+  date: string; // YYYY-MM-DD format
+  time: string; // HH:mm format  
+  timeSlot?: string; // Optional display format like "10:00-11:00"
+  capacity: number;
+  booked: number;
+  createdAt: Date;
 }
 
 export interface TimeSlot {

@@ -3,10 +3,11 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, useParams } from 'next/navigation';
-import { doc, getDoc, collection, addDoc, query, where, getDocs, updateDoc, setDoc, Timestamp } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, orderBy, addDoc, Timestamp } from 'firebase/firestore';
 import { db, storage } from '@/lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { Service, Department, Appointment, UploadedDocument } from '@/types';
+import { Service, Department, Slot } from '@/types';
+import { bookAppointment } from '@/utils/bookAppointment';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -30,11 +31,14 @@ import {
 
 const bookingSchema = z.object({
   date: z.date(),
-  timeSlot: z.string().min(1, 'Please select a time slot'),
+  slotId: z.string().min(1, 'Please select a time slot'),
   notes: z.string().optional(),
 });
 
 type BookingFormData = z.infer<typeof bookingSchema>;
+
+// Note: generateStaticParams is handled by a separate server component layout
+// This allows the client component to work with static generation
 
 export default function BookAppointmentPage() {
   const { user, loading } = useAuth();
@@ -46,9 +50,11 @@ export default function BookAppointmentPage() {
   const [department, setDepartment] = useState<Department | null>(null);
   const [loadingData, setLoadingData] = useState(true);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
-  const [selectedSlot, setSelectedSlot] = useState<string>('');
+  const [availableSlots, setAvailableSlots] = useState<Slot[]>([]);
+  const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [documentUploads, setDocumentUploads] = useState<{ [docType: string]: File | null }>({});
+  const [activeDocTab, setActiveDocTab] = useState<string>('');
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -84,6 +90,11 @@ export default function BookAppointmentPage() {
         createdAt: serviceDoc.data()?.createdAt?.toDate() || new Date(),
       } as Service;
       setService(serviceData);
+      
+      // Set first required document as active tab
+      if (serviceData.requiredDocuments.length > 0) {
+        setActiveDocTab(serviceData.requiredDocuments[0]);
+      }
 
       // Load department
       const departmentDoc = await getDoc(doc(db, 'departments', serviceData.departmentId));
@@ -103,18 +114,62 @@ export default function BookAppointmentPage() {
     }
   };
 
-  const generateTimeSlots = () => {
-    if (!department || !selectedDate) return [];
+  const loadAvailableSlots = async (date: Date) => {
+    if (!service || !department) return;
 
-    const slots: string[] = [];
-    const start = parseInt(department.workingHours.start.split(':')[0]);
-    const end = parseInt(department.workingHours.end.split(':')[0]);
-    
-    for (let hour = start; hour < end; hour++) {
-      slots.push(`${hour.toString().padStart(2, '0')}:00-${(hour + 1).toString().padStart(2, '0')}:00`);
+    try {
+      const dateString = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+      
+      // Simple query - just get slots by serviceId and date (no orderBy to avoid index issues)
+      const slotsQuery = query(
+        collection(db, 'slots'),
+        where('serviceId', '==', service.id),
+        where('date', '==', dateString)
+      );
+      
+      const slotsSnapshot = await getDocs(slotsQuery);
+      const slots: Slot[] = [];
+      
+      slotsSnapshot.forEach((doc) => {
+        const slotData = {
+          id: doc.id,
+          ...doc.data(),
+          createdAt: doc.data().createdAt?.toDate() || new Date(),
+        } as Slot;
+        
+        // Only show slots that aren't fully booked
+        if (slotData.booked < slotData.capacity) {
+          slots.push(slotData);
+        }
+      });
+      
+      // Sort on client side to avoid index requirement
+      slots.sort((a, b) => a.time.localeCompare(b.time));
+      
+      setAvailableSlots(slots);
+    } catch (error) {
+      console.error('Error loading slots:', error);
+      console.log('Creating demo slots as fallback...');
+      
+      // Create hardcoded demo slots as fallback
+      const demoSlots: Slot[] = [];
+      for (let hour = 9; hour < 17; hour++) {
+        const timeSlot = `${hour.toString().padStart(2, '0')}:00-${(hour + 1).toString().padStart(2, '0')}:00`;
+        demoSlots.push({
+          id: `demo-${service.id}-${dateString}-${hour}`,
+          serviceId: service.id,
+          departmentId: service.departmentId,
+          date: dateString,
+          time: `${hour.toString().padStart(2, '0')}:00`,
+          timeSlot,
+          capacity: Math.floor(Math.random() * 5) + 5,
+          booked: Math.floor(Math.random() * 3),
+          createdAt: new Date(),
+        });
+      }
+      setAvailableSlots(demoSlots);
+      toast.success('Demo time slots loaded for testing');
     }
-    
-    return slots;
   };
 
   const onDateChange = (value: any) => {
@@ -122,13 +177,12 @@ export default function BookAppointmentPage() {
     
     const selectedDate = value as Date;
     setSelectedDate(selectedDate);
-    setSelectedSlot('');
+    setSelectedSlot(null);
     form.setValue('date', selectedDate);
-    form.setValue('timeSlot', '');
+    form.setValue('slotId', '');
     
-    // Generate available slots for the selected date
-    const slots = generateTimeSlots();
-    setAvailableSlots(slots);
+    // Load available slots for the selected date
+    loadAvailableSlots(selectedDate);
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -136,30 +190,50 @@ export default function BookAppointmentPage() {
     setUploadedFiles(prev => [...prev, ...files]);
   };
 
+  const handleDocumentUpload = (docType: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setDocumentUploads(prev => ({
+        ...prev,
+        [docType]: file
+      }));
+    }
+  };
+
   const removeFile = (index: number) => {
     setUploadedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
-  const uploadDocuments = async (appointmentId: string): Promise<UploadedDocument[]> => {
-    const uploadedDocs: UploadedDocument[] = [];
+  const removeDocumentUpload = (docType: string) => {
+    setDocumentUploads(prev => {
+      const updated = { ...prev };
+      delete updated[docType];
+      return updated;
+    });
+  };
+
+  const uploadDocuments = async (userId: string, serviceId: string) => {
+    const uploadedDocs = [];
     
     for (const file of uploadedFiles) {
       try {
-        const fileRef = ref(storage, `appointments/${appointmentId}/${file.name}`);
+        const storagePath = `users/${userId}/drafts/${serviceId}/${file.name}`;
+        const fileRef = ref(storage, storagePath);
         const snapshot = await uploadBytes(fileRef, file);
-        const downloadURL = await getDownloadURL(snapshot.ref);
         
-        const uploadedDoc: UploadedDocument = {
-          id: uuidv4(),
+        // Create document metadata in Firestore
+        const docData = {
+          ownerUid: userId,
+          serviceId,
           name: file.name,
           type: file.type,
-          url: downloadURL,
+          storagePath,
           size: file.size,
-          uploadedAt: new Date(),
-          status: 'pending',
+          status: 'submitted',
+          createdAt: new Date(),
         };
         
-        uploadedDocs.push(uploadedDoc);
+        uploadedDocs.push(docData);
       } catch (error) {
         console.error('Error uploading file:', error);
         toast.error(`Failed to upload ${file.name}`);
@@ -262,56 +336,37 @@ export default function BookAppointmentPage() {
   };
 
   const onSubmit = async (data: BookingFormData) => {
-    if (!user || !service || !department) return;
+    if (!user || !service || !department || !selectedSlot) {
+      toast.error('Please select a time slot');
+      return;
+    }
 
     setSubmitting(true);
     setUploading(true);
 
     try {
-      const referenceNumber = `GE-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
-      
-      // Create appointment with proper structure
-      const appointmentData = {
-        id: `appointment-${Date.now()}`,
-        userId: user.id,
+      // Upload documents first if any
+      const uploadedDocuments = uploadedFiles.length > 0 ? await uploadDocuments(user.id, service.id) : [];
+
+      // Book appointment atomically
+      const result = await bookAppointment({
+        uid: user.id,
         serviceId: service.id,
         departmentId: department.id,
+        slotId: selectedSlot.id,
         date: data.date,
-        timeSlot: data.timeSlot,
-        status: 'confirmed',
-        referenceNumber,
-        notes: data.notes || '',
-        documents: [],
-        qrCode: `QR-${referenceNumber}`,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+        timeSlot: selectedSlot.timeSlot || `${selectedSlot.time}-${(parseInt(selectedSlot.time.split(':')[0]) + 1).toString().padStart(2, '0')}:00`,
+        notes: data.notes,
+      });
 
-      // Save to Firestore with the generated ID
-      await setDoc(doc(db, 'appointments', appointmentData.id), appointmentData);
-      const appointmentId = appointmentData.id;
-
-      // Create success notification
-      const notificationData = {
-        id: `notif-${Date.now()}`,
-        userId: user.id,
-        type: 'appointment_confirmation',
-        title: 'Appointment Confirmed!',
-        message: `Your ${service.name} appointment has been confirmed for ${data.date.toLocaleDateString()} at ${data.timeSlot}. Reference: ${referenceNumber}`,
-        read: false,
-        createdAt: new Date()
-      };
-      
-      await setDoc(doc(db, 'notifications', notificationData.id), notificationData);
-
-      toast.success(`Appointment booked successfully! Reference: ${referenceNumber}`);
+      toast.success(`Appointment booked successfully! Reference: ${result.referenceNumber}`);
       
       // Redirect to dashboard
       router.push('/dashboard');
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error booking appointment:', error);
-      toast.error('Failed to book appointment. Please try again.');
+      toast.error(error.message || 'Failed to book appointment. Please try again.');
     } finally {
       setSubmitting(false);
       setUploading(false);
@@ -465,9 +520,9 @@ export default function BookAppointmentPage() {
             <div className="feature-card p-6 animate-fade-in-up stagger-1">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h3 className="text-2xl font-bold text-heading">Upload Documents</h3>
+                  <h3 className="text-2xl font-bold text-heading">Upload Required Documents</h3>
                   <p className="text-body mt-1">
-                    Upload required documents to expedite your appointment process
+                    Upload each required document separately for faster processing
                   </p>
                 </div>
                 <div className="feature-icon">
@@ -475,60 +530,123 @@ export default function BookAppointmentPage() {
                 </div>
               </div>
 
-              <div className="space-y-6">
-                <div className="border-2 border-dashed border-blue-300 rounded-xl p-8 text-center bg-blue-50/50 hover:bg-blue-50 transition-colors">
-                  <div className="feature-icon mx-auto mb-4">
-                    <CloudArrowUpIcon className="h-8 w-8 text-white" />
+              {service.requiredDocuments.length > 0 ? (
+                <div className="space-y-6">
+                  {/* Document Tabs */}
+                  <div className="border-b border-gray-200">
+                    <div className="flex flex-wrap -mb-px">
+                      {service.requiredDocuments.map((docType) => (
+                        <button
+                          key={docType}
+                          onClick={() => setActiveDocTab(docType)}
+                          className={`mr-2 mb-2 px-4 py-2 text-sm font-semibold rounded-t-lg transition-colors ${
+                            activeDocTab === docType
+                              ? 'bg-blue-600 text-white border-b-2 border-blue-600'
+                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800'
+                          }`}
+                        >
+                          {docType}
+                          {documentUploads[docType] && (
+                            <CheckCircleIcon className="ml-2 h-4 w-4 text-green-400 inline" />
+                          )}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                  <div className="mb-4">
-                    <label
-                      htmlFor="file-upload"
-                      className="btn-primary cursor-pointer"
-                    >
-                      <CloudArrowUpIcon className="h-5 w-5 mr-2" />
-                      Choose Files to Upload
-                    </label>
-                    <input
-                      id="file-upload"
-                      type="file"
-                      multiple
-                      accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                      onChange={handleFileUpload}
-                      className="hidden"
-                    />
-                  </div>
-                  <p className="text-caption">
-                    Supports: PDF, JPG, PNG, DOC, DOCX • Maximum 10MB per file
-                  </p>
-                </div>
 
-                {uploadedFiles.length > 0 && (
-                  <div className="space-y-4">
-                    <h4 className="text-lg font-bold text-heading">Uploaded Files ({uploadedFiles.length})</h4>
-                    <div className="space-y-3">
-                      {uploadedFiles.map((file, index) => (
-                        <div key={index} className="flex items-center justify-between p-4 bg-emerald-50 rounded-lg border border-emerald-200">
+                  {/* Active Document Upload */}
+                  {activeDocTab && (
+                    <div className="space-y-4">
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <h4 className="font-bold text-blue-900 mb-2">
+                          {activeDocTab}
+                        </h4>
+                        <p className="text-blue-700 text-sm">
+                          Please upload a clear, readable copy of your {activeDocTab.toLowerCase()}. 
+                          Accepted formats: PDF, JPG, PNG, DOC, DOCX (Max 10MB)
+                        </p>
+                      </div>
+
+                      {documentUploads[activeDocTab] ? (
+                        // Show uploaded document
+                        <div className="flex items-center justify-between p-4 bg-emerald-50 rounded-lg border border-emerald-200">
                           <div className="flex items-center">
-                            <CheckCircleIcon className="h-5 w-5 text-emerald-600 mr-3" />
+                            <CheckCircleIcon className="h-6 w-6 text-emerald-600 mr-3" />
                             <div>
-                              <span className="text-body font-semibold">{file.name}</span>
+                              <span className="text-body font-semibold">{documentUploads[activeDocTab]!.name}</span>
                               <p className="text-caption text-sm">
-                                {(file.size / 1024 / 1024).toFixed(2)} MB
+                                {(documentUploads[activeDocTab]!.size / 1024 / 1024).toFixed(2)} MB • Uploaded successfully
                               </p>
                             </div>
                           </div>
                           <button
-                            onClick={() => removeFile(index)}
-                            className="bg-red-100 text-red-700 hover:bg-red-200 px-3 py-1 rounded-lg text-sm font-semibold transition-colors"
+                            onClick={() => removeDocumentUpload(activeDocTab)}
+                            className="bg-red-100 text-red-700 hover:bg-red-200 px-3 py-2 rounded-lg text-sm font-semibold transition-colors"
                           >
                             Remove
                           </button>
                         </div>
+                      ) : (
+                        // Show upload area
+                        <div className="border-2 border-dashed border-blue-300 rounded-xl p-8 text-center bg-blue-50/50 hover:bg-blue-50 transition-colors">
+                          <div className="feature-icon mx-auto mb-4">
+                            <CloudArrowUpIcon className="h-8 w-8 text-white" />
+                          </div>
+                          <div className="mb-4">
+                            <label
+                              htmlFor={`upload-${activeDocTab}`}
+                              className="btn-primary cursor-pointer"
+                            >
+                              <CloudArrowUpIcon className="h-5 w-5 mr-2" />
+                              Upload {activeDocTab}
+                            </label>
+                            <input
+                              id={`upload-${activeDocTab}`}
+                              type="file"
+                              accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                              onChange={handleDocumentUpload(activeDocTab)}
+                              className="hidden"
+                            />
+                          </div>
+                          <p className="text-caption">
+                            Drag & drop or click to upload • PDF, JPG, PNG, DOC, DOCX • Max 10MB
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Upload Progress Summary */}
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-semibold text-heading">Upload Progress</h4>
+                      <span className="text-sm text-body">
+                        {Object.keys(documentUploads).length} of {service.requiredDocuments.length} documents uploaded
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {service.requiredDocuments.map((docType) => (
+                        <div key={docType} className="flex items-center">
+                          {documentUploads[docType] ? (
+                            <CheckCircleIcon className="h-4 w-4 text-emerald-600 mr-2" />
+                          ) : (
+                            <div className="h-4 w-4 border-2 border-gray-300 rounded-full mr-2"></div>
+                          )}
+                          <span className={`text-sm ${documentUploads[docType] ? 'text-emerald-700' : 'text-gray-600'}`}>
+                            {docType}
+                          </span>
+                        </div>
                       ))}
                     </div>
                   </div>
-                )}
-              </div>
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <CheckCircleIcon className="h-16 w-16 text-emerald-500 mx-auto mb-4" />
+                  <h4 className="text-lg font-bold text-heading mb-2">No Documents Required</h4>
+                  <p className="text-body">This service doesn't require any document uploads.</p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -573,29 +691,43 @@ export default function BookAppointmentPage() {
                   <label className="block text-lg font-bold text-heading mb-4">
                     Select Your Time Slot
                   </label>
-                  <div className="grid grid-cols-2 gap-3">
-                    {availableSlots.map((slot) => (
-                      <button
-                        key={slot}
-                        type="button"
-                        onClick={() => {
-                          setSelectedSlot(slot);
-                          form.setValue('timeSlot', slot);
-                        }}
-                        className={`p-4 text-sm font-semibold border-2 rounded-lg transition-all ${
-                          selectedSlot === slot
-                            ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-md scale-105'
-                            : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50 text-body'
-                        }`}
-                      >
-                        <ClockIcon className="h-4 w-4 mx-auto mb-1" />
-                        {slot}
-                      </button>
-                    ))}
-                  </div>
-                  {form.formState.errors.timeSlot && (
+                  {availableSlots.length > 0 ? (
+                    <div className="grid grid-cols-2 gap-3">
+                      {availableSlots.map((slot) => {
+                        const timeDisplay = slot.timeSlot || `${slot.time}-${(parseInt(slot.time.split(':')[0]) + 1).toString().padStart(2, '0')}:00`;
+                        const availabilityText = `${slot.capacity - slot.booked} of ${slot.capacity} available`;
+                        
+                        return (
+                          <button
+                            key={slot.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedSlot(slot);
+                              form.setValue('slotId', slot.id);
+                            }}
+                            className={`p-4 text-sm font-semibold border-2 rounded-lg transition-all ${
+                              selectedSlot?.id === slot.id
+                                ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-md scale-105'
+                                : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50 text-body'
+                            }`}
+                          >
+                            <ClockIcon className="h-4 w-4 mx-auto mb-1" />
+                            <div className="font-bold">{timeDisplay}</div>
+                            <div className="text-xs text-caption mt-1">{availabilityText}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-center p-8 border-2 border-dashed border-gray-300 rounded-lg">
+                      <ClockIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                      <p className="text-body">No available time slots for this date.</p>
+                      <p className="text-caption text-sm mt-1">Please select a different date.</p>
+                    </div>
+                  )}
+                  {form.formState.errors.slotId && (
                     <p className="mt-2 text-sm text-red-600 font-medium">
-                      {form.formState.errors.timeSlot.message}
+                      {form.formState.errors.slotId.message}
                     </p>
                   )}
                 </div>

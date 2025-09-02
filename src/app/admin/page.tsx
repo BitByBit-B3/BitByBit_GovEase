@@ -21,6 +21,7 @@ import {
   Cog6ToothIcon
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
+import RoleManagement from '@/components/RoleManagement';
 
 export default function AdminDashboard() {
   const { user, loading, logout } = useAuth();
@@ -32,6 +33,7 @@ export default function AdminDashboard() {
   const [loadingData, setLoadingData] = useState(true);
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedDate, setSelectedDate] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<'appointments' | 'roles'>('appointments');
 
   useEffect(() => {
     if (!loading && !user) {
@@ -49,8 +51,23 @@ export default function AdminDashboard() {
     try {
       setLoadingData(true);
 
-      // Load appointments
-      const appointmentsQuery = query(collection(db, 'appointments'));
+      // Load appointments based on user role
+      let appointmentsQuery;
+      if (user.role === 'admin') {
+        // Admins see all appointments
+        appointmentsQuery = query(collection(db, 'appointments'));
+      } else if (user.role === 'officer' && user.departmentId) {
+        // Officers see only their department's appointments
+        appointmentsQuery = query(
+          collection(db, 'appointments'),
+          where('departmentId', '==', user.departmentId)
+        );
+      } else {
+        // No access for other roles
+        setAppointments([]);
+        setLoadingData(false);
+        return;
+      }
 
       const appointmentsSnapshot = await getDocs(appointmentsQuery);
       const appointmentsData: Appointment[] = [];
@@ -97,14 +114,13 @@ export default function AdminDashboard() {
     const usersData: { [key: string]: User } = {};
     for (const userId of userIds) {
       try {
-        const userDoc = await getDocs(query(collection(db, 'users'), where('__name__', '==', userId)));
-        if (!userDoc.empty) {
-          const doc = userDoc.docs[0];
-          usersData[doc.id] = {
-            id: doc.id,
-            ...doc.data(),
-            createdAt: doc.data().createdAt?.toDate() || new Date(),
-            updatedAt: doc.data().updatedAt?.toDate() || new Date(),
+        const userDoc = await getDoc(doc(db, 'users', userId));
+        if (userDoc.exists()) {
+          usersData[userDoc.id] = {
+            id: userDoc.id,
+            ...userDoc.data(),
+            createdAt: userDoc.data().createdAt?.toDate() || new Date(),
+            updatedAt: userDoc.data().updatedAt?.toDate() || new Date(),
           } as User;
         }
       } catch (error) {
@@ -176,13 +192,16 @@ export default function AdminDashboard() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
+      case 'booked':
       case 'confirmed':
         return <CheckCircleIcon className="h-5 w-5 text-green-500" />;
+      case 'checked_in':
+        return <ClockIcon className="h-5 w-5 text-blue-500" />;
       case 'completed':
         return <CheckCircleIcon className="h-5 w-5 text-blue-500" />;
       case 'cancelled':
         return <XCircleIcon className="h-5 w-5 text-red-500" />;
-      case 'no-show':
+      case 'no_show':
         return <ExclamationTriangleIcon className="h-5 w-5 text-orange-500" />;
       default:
         return <ClockIcon className="h-5 w-5 text-yellow-500" />;
@@ -206,13 +225,16 @@ export default function AdminDashboard() {
 
   const getStatusComponent = (status: string) => {
     switch (status) {
+      case 'booked':
       case 'confirmed':
         return 'status-confirmed';
+      case 'checked_in':
+        return 'status-pending';
       case 'completed':
         return 'status-completed';
       case 'cancelled':
         return 'status-cancelled';
-      case 'no-show':
+      case 'no_show':
         return 'status-cancelled';
       default:
         return 'status-pending';
@@ -249,8 +271,8 @@ export default function AdminDashboard() {
     apt => format(new Date(apt.date), 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')
   );
 
-  const pendingAppointments = appointments.filter(apt => apt.status === 'pending');
-  const confirmedAppointments = appointments.filter(apt => apt.status === 'confirmed');
+  const pendingAppointments = appointments.filter(apt => apt.status === 'booked' || apt.status === 'pending');
+  const confirmedAppointments = appointments.filter(apt => apt.status === 'confirmed' || apt.status === 'checked_in');
 
   return (
     <div className="min-h-screen">
@@ -385,7 +407,47 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Filters Section */}
+        {/* Tabs Navigation */}
+        {user.role === 'admin' && (
+          <div className="mb-8">
+            <div className="border-b border-gray-200">
+              <nav className="-mb-px flex space-x-8">
+                <button
+                  onClick={() => setActiveTab('appointments')}
+                  className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                    activeTab === 'appointments'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  Appointments Management
+                </button>
+                <button
+                  onClick={() => setActiveTab('roles')}
+                  className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                    activeTab === 'roles'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  User Role Management
+                </button>
+              </nav>
+            </div>
+          </div>
+        )}
+
+        {/* Role Management Tab */}
+        {user.role === 'admin' && activeTab === 'roles' && (
+          <div className="feature-card p-6">
+            <RoleManagement />
+          </div>
+        )}
+
+        {/* Appointments Tab */}
+        {activeTab === 'appointments' && (
+          <>
+            {/* Filters Section */}
         <div className="feature-card p-6 mb-8 animate-fade-in-up">
           <div className="flex items-center justify-between mb-6">
             <div>
@@ -596,6 +658,8 @@ export default function AdminDashboard() {
             </div>
           )}
         </div>
+          </>
+        )}
       </main>
     </div>
   );

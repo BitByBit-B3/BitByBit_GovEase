@@ -1,9 +1,109 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // OPEN ACCESS FOR DEVELOPMENT - ALLOW ALL OPERATIONS
-    match /{document=**} {
-      allow read, write: if true;
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function uid() {
+      return request.auth.uid;
+    }
+    
+    function userRole() {
+      return isSignedIn() ? get(/databases/$(database)/documents/users/$(uid())).data.role : null;
+    }
+    
+    function isCitizen() {
+      return userRole() == 'citizen';
+    }
+    
+    function isOfficer() {
+      return userRole() == 'officer';
+    }
+    
+    function isAdmin() {
+      return userRole() == 'admin';
+    }
+    
+    function isOfficerOrAdmin() {
+      return isOfficer() || isAdmin();
+    }
+
+    // Users collection - users can read/write own profile, admins can read all
+    match /users/{userId} {
+      allow read: if isSignedIn() && (userId == uid() || isAdmin());
+      allow write: if isSignedIn() && userId == uid();
+      allow create: if isSignedIn() && userId == uid();
+      // Admins can update user roles
+      allow update: if isAdmin();
+    }
+
+    // Departments - public read, admin write
+    match /departments/{departmentId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Services - public read, admin write
+    match /services/{serviceId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Slots - public read for availability, admin write
+    match /slots/{slotId} {
+      allow read: if true;
+      allow write: if isAdmin();
+      // Allow booking system to update booked count
+      allow update: if isSignedIn() && resource.data.keys().hasOnly(['booked']) == false;
+    }
+
+    // Appointments - users can read own, officers can read department appointments, admins can read all
+    match /appointments/{appointmentId} {
+      allow read: if isSignedIn() && (
+        resource.data.userId == uid() || 
+        isAdmin() || 
+        (isOfficer() && resource.data.departmentId == get(/databases/$(database)/documents/users/$(uid())).data.departmentId)
+      );
+      allow create: if isSignedIn() && request.resource.data.userId == uid();
+      allow update: if isSignedIn() && (
+        // Citizens can only cancel their own appointments
+        (resource.data.userId == uid() && request.resource.data.status == 'cancelled') ||
+        // Officers can update status for their department
+        (isOfficer() && resource.data.departmentId == get(/databases/$(database)/documents/users/$(uid())).data.departmentId) ||
+        // Admins can update any appointment
+        isAdmin()
+      );
+    }
+
+    // Uploaded documents - owner can create/read, officers/admins can read/update status
+    match /uploaded_documents/{documentId} {
+      allow read: if isSignedIn() && (
+        resource.data.ownerUid == uid() || isOfficerOrAdmin()
+      );
+      allow create: if isSignedIn() && request.resource.data.ownerUid == uid();
+      allow update: if isOfficerOrAdmin();
+    }
+
+    // Notifications - owner can read/write, officers/admins can create system notifications
+    match /notifications/{notificationId} {
+      allow read: if isSignedIn() && resource.data.userId == uid();
+      allow write: if isSignedIn() && request.resource.data.userId == uid();
+      allow create: if isOfficerOrAdmin();
+    }
+
+    // Analytics - officers and admins only
+    match /analytics/{document} {
+      allow read, write: if isOfficerOrAdmin();
+    }
+
+    // Feedback - owner can create/read, officers/admins can read
+    match /feedback/{feedbackId} {
+      allow read: if isSignedIn() && (
+        resource.data.userId == uid() || isOfficerOrAdmin()
+      );
+      allow create: if isSignedIn() && request.resource.data.userId == uid();
     }
   }
 }
