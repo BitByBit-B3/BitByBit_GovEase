@@ -2,12 +2,15 @@
 
 import { useState } from 'react';
 import { seedDatabase } from '@/utils/seedData';
-import { BuildingOfficeIcon, ArrowRightIcon, CheckCircleIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { generateRealisticSlots } from '@/utils/generateSlots';
+import { BuildingOfficeIcon, ArrowRightIcon, CheckCircleIcon, ExclamationTriangleIcon, ClockIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 
 export default function SeedPage() {
   const [loading, setLoading] = useState(false);
+  const [slotsLoading, setSlotsLoading] = useState(false);
   const [result, setResult] = useState<{ success: boolean; message?: string; error?: any } | null>(null);
+  const [slotsResult, setSlotsResult] = useState<{ success: boolean; count?: number; error?: any } | null>(null);
 
   const handleSeed = async () => {
     setLoading(true);
@@ -20,6 +23,20 @@ export default function SeedPage() {
       setResult({ success: false, error });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGenerateSlots = async () => {
+    setSlotsLoading(true);
+    setSlotsResult(null);
+    
+    try {
+      const count = await generateRealisticSlots();
+      setSlotsResult({ success: true, count });
+    } catch (error) {
+      setSlotsResult({ success: false, error });
+    } finally {
+      setSlotsLoading(false);
     }
   };
 
@@ -144,10 +161,39 @@ export default function SeedPage() {
               </div>
             )}
 
+            {slotsResult && (
+              <div className={`card-featured p-6 ${
+                slotsResult.success 
+                  ? 'bg-purple-50 border-purple-200' 
+                  : 'bg-red-50 border-red-200'
+              }`}>
+                {slotsResult.success ? (
+                  <div className="flex items-start">
+                    <ClockIcon className="h-6 w-6 text-purple-600 mr-3 mt-0.5" />
+                    <div>
+                      <h3 className="text-lg font-bold text-purple-800 mb-2">Time Slots Generated Successfully!</h3>
+                      <p className="text-purple-700">
+                        Created {slotsResult.count} realistic time slots across all services for the next 2 weeks. 
+                        Users can now book appointments with available times!
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-start">
+                    <ExclamationTriangleIcon className="h-6 w-6 text-red-600 mr-3 mt-0.5" />
+                    <div>
+                      <h3 className="text-lg font-bold text-red-800 mb-2">Slot Generation Failed</h3>
+                      <p className="text-red-700">{slotsResult.error?.message || 'An unknown error occurred'}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="flex flex-col sm:flex-row gap-4">
               <button
                 onClick={handleSeed}
-                disabled={loading}
+                disabled={loading || slotsLoading}
                 className="btn-primary flex-1 py-4 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? (
@@ -159,6 +205,24 @@ export default function SeedPage() {
                   <div className="flex items-center justify-center">
                     <BuildingOfficeIcon className="h-5 w-5 mr-2" />
                     Initialize Database
+                  </div>
+                )}
+              </button>
+
+              <button
+                onClick={handleGenerateSlots}
+                disabled={loading || slotsLoading}
+                className="bg-purple-600 hover:bg-purple-700 text-white font-semibold flex-1 py-4 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {slotsLoading ? (
+                  <div className="flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                    Generating Slots...
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center">
+                    <ClockIcon className="h-5 w-5 mr-2" />
+                    Generate Time Slots
                   </div>
                 )}
               </button>
